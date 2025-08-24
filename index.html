@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>E-Rechnung Generator – ZUGFeRD/Factur-X & XRechnung (PDF+XML)</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net"/>
+<script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--ink:#1f2328;--muted:#6b7280;--accent:#0d6efd;--line:#e5e7eb}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif}
+.container{max-width:1120px;margin:24px auto;padding:0 16px}
+h1{font-size:22px;margin:0 0 16px}
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px}
+label{display:block;font-weight:600;margin:.2rem 0 .25rem}
+input,select,textarea{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:#fff}
+.small{font-size:12px;color:var(--muted)}
+.row{display:flex;gap:10px;align-items:center}
+button{appearance:none;border:0;border-radius:10px;padding:10px 14px;background:var(--accent);color:#fff;font-weight:700;cursor:pointer}
+button.ghost{background:#eef3ff;color:#0b57d0}
+button.red{background:#e11d48}
+button.gray{background:#6b7280}
+button:disabled{opacity:.6;cursor:not-allowed}
+.table{width:100%;border-collapse:collapse}
+.table th,.table td{border:1px solid var(--line);padding:8px;vertical-align:top}
+.table th{background:#f2f4f7;text-align:left}
+.actions{display:flex;flex-wrap:wrap;gap:10px}
+.badge{display:inline-flex;align-items:center;gap:6px;background:#eef2ff;color:#1e40af;border-radius:999px;padding:6px 10px;font-size:12px}
+hr{border:0;border-top:1px solid var(--line);margin:12px 0}
+.kv{display:grid;grid-template-columns:180px 1fr;gap:8px;align-items:center}
+.flex{display:flex;gap:12px}
+.flexcol{display:flex;flex-direction:column;gap:8px}
+.right{margin-left:auto}
+.totalbox{background:#0b1220;color:#e6edf3;border-radius:10px;padding:12px}
+@media (max-width:900px){.grid{grid-template-columns:repeat(6,1fr)}}
+@media (max-width:640px){.grid{grid-template-columns:repeat(2,1fr)}.kv{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:12px">
+    <h1>E-Rechnung Generator – ZUGFeRD/Factur-X (EN 16931) & XRechnung</h1>
+    <div class="row">
+      <span class="badge">PDF/A-3b</span>
+      <span class="badge">XML eingebettet</span>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="card" style="grid-column: span 12;">
+      <div class="actions">
+        <button id="btnSample" class="gray">Beispieldaten</button>
+        <button id="btnReset" class="red">Alles leeren</button>
+        <span class="small">Pflichtfelder mit * gekennzeichnet</span>
+      </div>
+    </div>
+
+    <div class="card" style="grid-column: span 6;">
+      <div class="kv">
+        <label>Profil</label>
+        <select id="profile">
+          <option value="EN16931">EN16931</option>
+          <option value="BASIC">BASIC</option>
+          <option value="BASICWL">BASIC WL</option>
+          <option value="EXTENDED">EXTENDED</option>
+          <option value="MINIMUM">MINIMUM</option>
+        </select>
+        <label>Rechnungsnummer*</label>
+        <input id="invNumber" placeholder="RE-2025-0001"/>
+        <label>Rechnungsdatum*</label>
+        <input id="invDate" type="date"/>
+        <label>Fälligkeitsdatum</label>
+        <input id="dueDate" type="date"/>
+        <label>Währung*</label>
+        <select id="currency">
+          <option>EUR</option><option>USD</option><option>GBP</option><option>CHF</option>
+        </select>
+        <label>Bestell-/Auftragsreferenz</label>
+        <input id="orderRef" placeholder="PO-12345"/>
+        <label>Käuferreferenz</label>
+        <input id="buyerRef" placeholder="Kostenstelle/Ansprechpartner"/>
+        <label>Liefer-/Leistungsdatum</label>
+        <input id="supplyDate" type="date"/>
+        <label>Hinweise</label>
+        <textarea id="notes" rows="2"></textarea>
+      </div>
+    </div>
+
+    <div class="card" style="grid-column: span 6;">
+      <div class="kv">
+        <label>Verkäufer* – Name</label><input id="sellerName"/>
+        <label>Verkäufer – Straße</label><input id="sellerStreet"/>
+        <label>Verkäufer – PLZ</label><input id="sellerZip"/>
+        <label>Verkäufer – Ort</label><input id="sellerCity"/>
+        <label>Verkäufer – Ländercode*</label><input id="sellerCountry" maxlength="2" value="DE"/>
+        <label>Verkäufer – USt-IdNr. (VA)</label><input id="sellerVAT"/>
+        <label>Verkäufer – Steuer-Nr. (FC)</label><input id="sellerFC"/>
+        <label>Verkäufer – Register/HR</label><input id="sellerReg"/>
+        <label>Verkäufer – E-Mail</label><input id="sellerEmail"/>
+        <label>Verkäufer – Telefon</label><input id="sellerPhone"/>
+      </div>
+    </div>
+
+    <div class="card" style="grid-column: span 6;">
+      <div class="kv">
+        <label>Käufer* – Name</label><input id="buyerName"/>
+        <label>Käufer – Straße</label><input id="buyerStreet"/>
+        <label>Käufer – PLZ</label><input id="buyerZip"/>
+        <label>Käufer – Ort</label><input id="buyerCity"/>
+        <label>Käufer – Ländercode*</label><input id="buyerCountry" maxlength="2" value="DE"/>
+        <label>Käufer – USt-IdNr. (VA)</label><input id="buyerVAT"/>
+        <label>Käufer – Steuer-Nr. (FC)</label><input id="buyerFC"/>
+        <label>Käufer – E-Mail</label><input id="buyerEmail"/>
+        <label>Käufer – Telefon</label><input id="buyerPhone"/>
+      </div>
+    </div>
+
+    <div class="card" style="grid-column: span 6;">
+      <div class="kv">
+        <label>Zahlungsart</label>
+        <select id="payType">
+          <option value="58">SEPA-Überweisung (58)</option>
+          <option value="59">SEPA-Lastschrift (59)</option>
+          <option value="30">Überweisung (30)</option>
+          <option value="49">Lastschrift (49)</option>
+          <option value="48">Kartenzahlung (48)</option>
+        </select>
+        <label>IBAN</label><input id="iban" placeholder="DE.."/>
+        <label>BIC</label><input id="bic" placeholder="GENODEF1S01"/>
+        <label>Kontoinhaber</label><input id="accHolder"/>
+        <label>Zahlungsziel/Bedingungen</label><input id="payTerms" placeholder="z. B. 14 Tage netto"/>
+        <label>EPC/SEPA-Verwendungszweck</label><input id="remittance" placeholder="Rechnung RE-..."/>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <canvas id="qrCanvas" width="160" height="160" style="border:1px dashed var(--line);border-radius:8px;background:#fff"></canvas>
+        <div class="flexcol small">
+          <span>EPC-QR wird generiert, wenn IBAN und Betrag vorliegen.</span>
+          <button id="dlQR" class="ghost" disabled>QR-Code speichern</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="grid-column: span 12;">
+      <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div class="row" style="gap:8px;align-items:center">
+          <strong>Positionen</strong>
+          <span class="small">Einheit (z. B. C62=Stück, HUR=Stunde)</span>
+        </div>
+        <div class="actions">
+          <button id="addRow" class="ghost">Position hinzufügen</button>
+          <button id="clearRows" class="red">Alle löschen</button>
+        </div>
+      </div>
+      <table class="table" id="items">
+        <thead>
+          <tr>
+            <th>Pos</th>
+            <th>Produktname*</th>
+            <th>Beschreibung</th>
+            <th>Menge*</th>
+            <th>Einheit*</th>
+            <th>Einzelpreis (netto)*</th>
+            <th>USt-Kat</th>
+            <th>USt-%</th>
+            <th>Zeilenrabatt</th>
+            <th>Netto</th>
+            <th>MwSt</th>
+            <th>Brutto</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <div class="row" style="justify-content:flex-end;gap:10px;margin-top:8px">
+        <div class="totalbox" id="totalsBox">
+          <div>Zwischensumme netto: <span id="tNet">0,00</span> <span id="tCur"></span></div>
+          <div>Steuern: <span id="tTax">0,00</span> <span id="tCur2"></span></div>
+          <div><strong>Gesamt brutto: <span id="tGross">0,00</span> <span id="tCur3"></span></strong></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="grid-column: span 12;">
+      <div class="actions">
+        <button id="genXml" class="ghost">XML anzeigen/speichern</button>
+        <button id="genPdf">PDF+A-3 mit eingebettetem XML erzeugen</button>
+        <button id="dlJson" class="ghost">JSON Export</button>
+        <button id="dlCsv" class="ghost">CSV Export</button>
+      </div>
+      <hr/>
+      <details>
+        <summary>XML</summary>
+        <pre id="xmlOut" style="white-space:pre-wrap;overflow:auto;max-height:340px;background:#0f172a;color:#e6edf3;padding:10px;border-radius:8px"></pre>
+      </details>
+    </div>
+  </div>
+</div>
+
+<script>
+const $=q=>document.querySelector(q);const $$=q=>Array.from(document.querySelectorAll(q));
+const fmt=(n,cur)=>Number(n||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})+(cur?(" "+cur):"");
+const today=()=>new Date().toISOString().slice(0,10);
+$("#invDate").value=today();
+$("#profile").value="EN16931";
+const VAT_CATS=[{c:"S",t:"Standardbesteuert"},{c:"Z",t:"Nullsteuer"},{c:"E",t:"Steuerbefreit"},{c:"AE",t:"Reverse Charge"},{c:"K",t:"Kleinunternehmer"}];
+const unitDefault="C62";
+
+function addRow(pref){
+  const tb=$("#items tbody");const r=document.createElement("tr");
+  r.innerHTML=`<td><input class="pos" style="width:64px" value="${(tb.children.length+1)}"/></td>
+  <td><input class="name" required value="${pref?.name??1}"/></td>
+  <td><input class="desc" value="${pref?.desc??1}"/></td>
+  <td><input class="qty" type="number" step="0.0001" min="0" value="${pref?.qty??1}"/></td>
+  <td><input class="unit" value="${pref?.unit??unitDefault}"/></td>
+  <td><input class="price" type="number" step="0.0001" min="0" value="${pref?.price??0}"/></td>
+  <td><select class="vatcat">${VAT_CATS.map(v=>`<option value="${v.c}">${v.c}</option>`).join("")}</select></td>
+  <td><input class="vatrate" type="number" step="0.01" min="0" value="${pref?.rate??19}"/></td>
+  <td><input class="disc" type="number" step="0.01" value="${pref?.disc??0}" title="%"/></td>
+  <td class="lnet">0,00</td><td class="ltax">0,00</td><td class="lgross">0,00</td>
+  <td><button class="red del">✕</button></td>`;
+  tb.appendChild(r);
+  r.querySelector(".vatcat").value=pref?.cat||"S";
+  r.querySelector(".del").onclick=()=>{r.remove(); renum(); recalc();};
+  r.querySelectorAll("input,select").forEach(el=>el.addEventListener("input",recalc));
+  recalc();
+}
+function renum(){$("#items tbody").querySelectorAll("tr").forEach((tr,i)=>tr.querySelector(".pos").value=String(i+1))}
+$("#addRow").onclick=()=>addRow();
+$("#clearRows").onclick=()=>{$("#items tbody").innerHTML="";recalc();};
+addRow({price:100,qty:1,rate:19,unit:"C62",cat:"S"});
+
+function recalc(){
+  const cur=$("#currency").value;
+  let net=0,tax=0,gross=0;
+  $("#items tbody").querySelectorAll("tr").forEach(tr=>{
+    const qty=parseFloat(tr.querySelector(".qty").value||"0");
+    const price=parseFloat(tr.querySelector(".price").value||"0");
+    const disc=parseFloat(tr.querySelector(".disc").value||"0");
+    const rate=parseFloat(tr.querySelector(".vatrate").value||"0");
+    let lineNet=qty*price;
+    if(disc>0){lineNet=lineNet*(1-disc/100);}
+    const cat=tr.querySelector(".vatcat").value;
+    const lineTax=(cat==="Z"||cat==="E"||cat==="K")?0:lineNet*rate/100;
+    const lineGross=lineNet+lineTax;
+    tr.querySelector(".lnet").textContent=fmt(lineNet);
+    tr.querySelector(".ltax").textContent=fmt(lineTax);
+    tr.querySelector(".lgross").textContent=fmt(lineGross);
+    net+=lineNet;tax+=lineTax;gross+=lineGross;
+  });
+  $("#tNet").textContent=fmt(net);$("#tTax").textContent=fmt(tax);$("#tGross").textContent=fmt(gross);
+  $("#tCur").textContent=cur;$("#tCur2").textContent=cur;$("#tCur3").textContent=cur;
+  genQRPreview();
+}
+$$("input,select").forEach(e=>e.addEventListener("input",recalc));
+
+function ibanClean(v){return (v||"").replace(/\s+/g,"").toUpperCase()}
+function isValidIBAN(i){const s=ibanClean(i);if(!/^[A-Z]{2}\d{2}[A-Z0-9]{1,30}$/.test(s))return false;const r=(s.slice(4)+s.slice(0,4)).replace(/[A-Z]/g,c=>c.charCodeAt(0)-55);let m="";for(let i=0;i<r.length;i+=7){m=String(parseInt((m+r.substring(i,i+7)),10)%97)}return m==="1"}
+
+function epcString(){
+  const iban=ibanClean($("#iban").value);const bic=$("#bic").value.trim();const name=$("#sellerName").value.trim().slice(0,70);
+  const gross=parseFloat($("#tGross").textContent.replace(/\./g,"").replace(",",".").split(" ")[0]||"0");
+  const amount=gross>0?gross:0;
+  const rem=($("#remittance").value||("Rechnung "+($("#invNumber").value||""))).slice(0,140);
+  if(!iban||!name||!amount) return null;
+  return ["BCD","002","1","SCT",bic||"",name,iban,`EUR${amount.toFixed(2)}`,"","",rem,""].join("\n");
+}
+function genQRPreview(){
+  const data=epcString();
+  const btn=$("#dlQR");const c=$("#qrCanvas").getContext("2d");c.clearRect(0,0,160,160);
+  if(!data){btn.disabled=true;return}
+  QRCode.toCanvas($("#qrCanvas"),data,{width:160,height:160,errorCorrectionLevel:"M"},(e)=>{btn.disabled=!!e;});
+}
+$("#dlQR").onclick=()=>{
+  const a=document.createElement("a");a.href=$("#qrCanvas").toDataURL("image/png");a.download=`epc_${($("#invNumber").value||"invoice")}.png`;a.click();
+};
+
+function collect(){
+  const cur=$("#currency").value;
+  const header={
+    profile:$("#profile").value,
+    number:$("#invNumber").value.trim(),
+    date:$("#invDate").value,
+    dueDate:$("#dueDate").value||"",
+    orderRef:$("#orderRef").value||"",
+    buyerRef:$("#buyerRef").value||"",
+    supplyDate:$("#supplyDate").value||"",
+    notes:$("#notes").value||"",
+    currency:cur
+  };
+  const seller={
+    name:$("#sellerName").value.trim(),
+    street:$("#sellerStreet").value.trim(),
+    zip:$("#sellerZip").value.trim(),
+    city:$("#sellerCity").value.trim(),
+    country:($("#sellerCountry").value||"DE").toUpperCase(),
+    vat:$("#sellerVAT").value.trim(),
+    fc:$("#sellerFC").value.trim(),
+    reg:$("#sellerReg").value.trim(),
+    email:$("#sellerEmail").value.trim(),
+    phone:$("#sellerPhone").value.trim()
+  };
+  const buyer={
+    name:$("#buyerName").value.trim(),
+    street:$("#buyerStreet").value.trim(),
+    zip:$("#buyerZip").value.trim(),
+    city:$("#buyerCity").value.trim(),
+    country:($("#buyerCountry").value||"DE").toUpperCase(),
+    vat:$("#buyerVAT").value.trim(),
+    fc:$("#buyerFC").value.trim(),
+    email:$("#buyerEmail").value.trim(),
+    phone:$("#buyerPhone").value.trim()
+  };
+  const payment={
+    type:$("#payType").value,
+    terms:$("#payTerms").value.trim(),
+    iban:ibanClean($("#iban").value),
+    bic:$("#bic").value.trim(),
+    holder:$("#accHolder").value.trim(),
+    remittance:$("#remittance").value.trim()
+  };
+  const lines=[]; const taxByRate=new Map();
+  $("#items tbody").querySelectorAll("tr").forEach((tr,idx)=>{
+    const pos=tr.querySelector(".pos").value||String(idx+1);
+    const name=tr.querySelector(".name").value.trim();
+    const desc=tr.querySelector(".desc").value.trim();
+    const qty=parseFloat(tr.querySelector(".qty").value||"0");
+    const unit=tr.querySelector(".unit").value.trim()||unitDefault;
+    const price=parseFloat(tr.querySelector(".price").value||"0");
+    const cat=tr.querySelector(".vatcat").value;
+    const rate=parseFloat(tr.querySelector(".vatrate").value||"0");
+    const disc=parseFloat(tr.querySelector(".disc").value||"0");
+    let lineNet=qty*price; if(disc>0) lineNet=lineNet*(1-disc/100);
+    const lineTax=(cat==="Z"||cat==="E"||cat==="K")?0:lineNet*rate/100;
+    const lineGross=lineNet+lineTax;
+    lines.push({pos,name,desc,qty,unit,price,disc,cat,rate,lineNet,lineTax,lineGross});
+    if(lineTax>0){
+      const k=`${cat}|${rate}`;
+      const prev=taxByRate.get(k)||{cat,rate,base:0,tax:0};
+      prev.base+=lineNet; prev.tax+=lineTax; taxByRate.set(k,prev);
+    }
+  });
+  const totals={
+    net:lines.reduce((s,l)=>s+l.lineNet,0),
+    tax:lines.reduce((s,l)=>s+l.lineTax,0),
+    gross:lines.reduce((s,l)=>s+l.lineGross,0),
+    due:lines.reduce((s,l)=>s+l.lineGross,0)
+  };
+  return {header,seller,buyer,payment,lines,taxBreakdown:[...taxByRate.values()],totals};
+}
+function validate(d){
+  const errs=[];
+  if(!d.header.number) errs.push("Rechnungsnummer");
+  if(!d.header.date) errs.push("Rechnungsdatum");
+  if(!d.header.currency) errs.push("Währung");
+  if(!d.seller.name) errs.push("Verkäufer/Name");
+  if(!d.seller.country) errs.push("Verkäufer/Land");
+  if(!d.buyer.name) errs.push("Käufer/Name");
+  if(!d.buyer.country) errs.push("Käufer/Land");
+  if(d.lines.length===0) errs.push("Mindestens eine Position");
+  d.lines.forEach((l,i)=>{
+    if(!l.name) errs.push(`Pos ${i+1}: Produktname`);
+    if(!(l.qty>0)) errs.push(`Pos ${i+1}: Menge`);
+    if(!(l.price>=0)) errs.push(`Pos ${i+1}: Preis`);
+    if(!l.unit) errs.push(`Pos ${i+1}: Einheit`);
+  });
+  return errs;
+}
+function xmlEscape(s){return String(s??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
+function yyyymmdd(s){if(!s) return ""; return s.replace(/-/g,"")}
+function dec(n){return (Math.round((n+Number.EPSILON)*100)/100).toFixed(2)}
+
+function buildCII(d){
+  const nsR="urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100";
+  const nsA="urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100";
+  const nsU="urn:un:unece:uncefact:data:standard:UnqualifiedDataType:100";
+  const dt=(v)=>`<udt:DateTimeString format="102">${yyyymmdd(v)}</udt:DateTimeString>`;
+  const adr=(p)=>`
+    <ram:PostalTradeAddress>
+      ${p.street?`<ram:LineOne>${xmlEscape(p.street)}</ram:LineOne>`:""}
+      ${p.zip?`<ram:PostcodeCode>${xmlEscape(p.zip)}</ram:PostcodeCode>`:""}
+      ${p.city?`<ram:CityName>${xmlEscape(p.city)}</ram:CityName>`:""}
+      ${p.country?`<ram:CountryID>${xmlEscape(p.country)}</ram:CountryID>`:""}
+    </ram:PostalTradeAddress>`;
+  const taxRegs=(p)=>`
+    ${p.vat?`<ram:SpecifiedTaxRegistration><ram:ID schemeID="VA">${xmlEscape(p.vat)}</ram:ID></ram:SpecifiedTaxRegistration>`:""}
+    ${p.fc?`<ram:SpecifiedTaxRegistration><ram:ID schemeID="FC">${xmlEscape(p.fc)}</ram:ID></ram:SpecifiedTaxRegistration>`:""}`;
+  const party=(t,p)=>`
+    <ram:${t}>
+      <ram:Name>${xmlEscape(p.name)}</ram:Name>
+      ${adr(p)}
+      ${p.email||p.phone?`
+      <ram:DefinedTradeContact>
+        ${p.email?`<ram:EmailURIUniversalCommunication><ram:URIID>${xmlEscape(p.email)}</ram:URIID></ram:EmailURIUniversalCommunication>`:""}
+        ${p.phone?`<ram:TelephoneUniversalCommunication><ram:CompleteNumber>${xmlEscape(p.phone)}</ram:CompleteNumber></ram:TelephoneUniversalCommunication>`:""}
+      </ram:DefinedTradeContact>`:""}
+      ${taxRegs(p)}
+      ${p.reg?`<ram:SpecifiedLegalOrganization><ram:ID>${xmlEscape(p.reg)}</ram:ID></ram:SpecifiedLegalOrganization>`:""}
+    </ram:${t}>`;
+  const pay=`
+    <ram:ApplicableHeaderTradeSettlement>
+      <ram:InvoiceCurrencyCode>${xmlEscape(d.header.currency)}</ram:InvoiceCurrencyCode>
+      ${d.payment.type?`<ram:SpecifiedTradeSettlementPaymentMeans>
+        <ram:TypeCode>${xmlEscape(d.payment.type)}</ram:TypeCode>
+        ${d.payment.holder?`<ram:PayeePartyCreditorFinancialAccount><ram:AccountName>${xmlEscape(d.payment.holder)}</ram:AccountName></ram:PayeePartyCreditorFinancialAccount>`:""}
+        ${d.payment.iban?`<ram:PayeePartyCreditorFinancialAccount><ram:IBANID>${xmlEscape(d.payment.iban)}</ram:IBANID></ram:PayeePartyCreditorFinancialAccount>`:""}
+        ${d.payment.bic?`<ram:PayeeSpecifiedCreditorFinancialInstitution><ram:BICID>${xmlEscape(d.payment.bic)}</ram:BICID></ram:PayeeSpecifiedCreditorFinancialInstitution>`:""}
+      </ram:SpecifiedTradeSettlementPaymentMeans>`:""}
+      ${d.payment.terms?`<ram:SpecifiedTradePaymentTerms><ram:Description>${xmlEscape(d.payment.terms)}</ram:Description>${d.header.dueDate?`<ram:DueDateDateTime><udt:DateTimeString format="102">${yyyymmdd(d.header.dueDate)}</udt:DateTimeString></ram:DueDateDateTime>`:""}</ram:SpecifiedTradePaymentTerms>`:""}
+      ${d.taxBreakdown.map(tb=>`
+        <ram:ApplicableTradeTax>
+          <ram:TypeCode>VAT</ram:TypeCode>
+          <ram:CategoryCode>${xmlEscape(tb.cat)}</ram:CategoryCode>
+          <ram:RateApplicablePercent>${dec(tb.rate)}</ram:RateApplicablePercent>
+          <ram:BasisAmount>${dec(tb.base)}</ram:BasisAmount>
+          <ram:CalculatedAmount>${dec(tb.tax)}</ram:CalculatedAmount>
+        </ram:ApplicableTradeTax>`).join("")}
+      <ram:SpecifiedTradeSettlementMonetarySummation>
+        <ram:LineTotalAmount>${dec(d.totals.net)}</ram:LineTotalAmount>
+        <ram:TaxTotalAmount>${dec(d.totals.tax)}</ram:TaxTotalAmount>
+        <ram:GrandTotalAmount>${dec(d.totals.gross)}</ram:GrandTotalAmount>
+        <ram:DuePayableAmount>${dec(d.totals.due)}</ram:DuePayableAmount>
+      </ram:SpecifiedTradeSettlementMonetarySummation>
+    </ram:ApplicableHeaderTradeSettlement>`;
+  const notes=d.header.notes?`<ram:IncludedNote><ram:Content>${xmlEscape(d.header.notes)}</ram:Content></ram:IncludedNote>`:"";
+  const delivery=d.header.supplyDate?`<ram:ApplicableHeaderTradeDelivery><ram:ActualDeliverySupplyChainEvent><ram:OccurrenceDateTime><udt:DateTimeString format="102">${yyyymmdd(d.header.supplyDate)}</udt:DateTimeString></ram:OccurrenceDateTime></ram:ActualDeliverySupplyChainEvent></ram:ApplicableHeaderTradeDelivery>`:"";
+  const refBuyer=d.header.buyerRef?`<ram:BuyerReference>${xmlEscape(d.header.buyerRef)}</ram:BuyerReference>`:"";
+  const refOrder=d.header.orderRef?`<ram:BuyerOrderReferencedDocument><ram:IssuerAssignedID>${xmlEscape(d.header.orderRef)}</ram:IssuerAssignedID></ram:BuyerOrderReferencedDocument>`:"";
+  const lines=d.lines.map((l,idx)=>`
+    <ram:IncludedSupplyChainTradeLineItem>
+      <ram:AssociatedDocumentLineDocument><ram:LineID>${xmlEscape(l.pos||String(idx+1))}</ram:LineID></ram:AssociatedDocumentLineDocument>
+      <ram:SpecifiedTradeProduct>
+        <ram:Name>${xmlEscape(l.name)}</ram:Name>
+        ${l.desc?`<ram:Description>${xmlEscape(l.desc)}</ram:Description>`:""}
+      </ram:SpecifiedTradeProduct>
+      <ram:SpecifiedLineTradeAgreement>
+        <ram:NetPriceProductTradePrice>
+          <ram:ChargeAmount>${dec(l.price)}</ram:ChargeAmount>
+        </ram:NetPriceProductTradePrice>
+      </ram:SpecifiedLineTradeAgreement>
+      <ram:SpecifiedLineTradeDelivery>
+        <ram:BilledQuantity unitCode="${xmlEscape(l.unit)}">${dec(l.qty)}</ram:BilledQuantity>
+      </ram:SpecifiedLineTradeDelivery>
+      <ram:SpecifiedLineTradeSettlement>
+        <ram:ApplicableTradeTax>
+          <ram:TypeCode>VAT</ram:TypeCode>
+          <ram:CategoryCode>${xmlEscape(l.cat)}</ram:CategoryCode>
+          <ram:RateApplicablePercent>${dec(l.rate)}</ram:RateApplicablePercent>
+        </ram:ApplicableTradeTax>
+        <ram:SpecifiedTradeSettlementLineMonetarySummation>
+          <ram:LineTotalAmount>${dec(l.lineNet)}</ram:LineTotalAmount>
+        </ram:SpecifiedTradeSettlementLineMonetarySummation>
+      </ram:SpecifiedLineTradeSettlement>
+    </ram:IncludedSupplyChainTradeLineItem>`).join("");
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<rsm:CrossIndustryInvoice xmlns:rsm="${nsR}" xmlns:ram="${nsA}" xmlns:udt="${nsU}">
+  <rsm:ExchangedDocument>
+    <ram:ID>${xmlEscape(d.header.number)}</ram:ID>
+    <ram:TypeCode>380</ram:TypeCode>
+    ${notes}
+    <ram:IssueDateTime><udt:DateTimeString format="102">${yyyymmdd(d.header.date)}</udt:DateTimeString></ram:IssueDateTime>
+  </rsm:ExchangedDocument>
+  <rsm:SupplyChainTradeTransaction>
+    <ram:ApplicableHeaderTradeAgreement>
+      ${refBuyer}
+      ${refOrder}
+      ${party("SellerTradeParty",d.seller)}
+      ${party("BuyerTradeParty",d.buyer)}
+    </ram:ApplicableHeaderTradeAgreement>
+    ${delivery}
+    ${pay}
+    ${lines}
+  </rsm:SupplyChainTradeTransaction>
+</rsm:CrossIndustryInvoice>`;
+}
+
+$("#genXml").onclick=()=>{
+  const data=collect(); const errs=validate(data);
+  if(errs.length){alert("Fehlende/ungültige Felder:\n- "+errs.join("\n- "));return}
+  const xml=buildCII(data);
+  $("#xmlOut").textContent=xml;
+  const blob=new Blob([xml],{type:"application/xml"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`${data.header.number||"invoice"}.xml`;a.click();
+};
+$("#dlJson").onclick=()=>{
+  const d=collect();const blob=new Blob([JSON.stringify(d,null,2)],{type:"application/json"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`${d.header.number||"invoice"}.json`;a.click();
+};
+$("#dlCsv").onclick=()=>{
+  const d=collect(); if(!d.lines.length){alert("Keine Positionen.");return}
+  const sep=",";
+  const head=["Pos","Produkt","Beschreibung","Menge","Einheit","Einzelpreis","USt-Kat","USt-%","Rabatt%","Netto","Steuer","Brutto"].join(sep);
+  const rows=d.lines.map(l=>[l.pos,`"${l.name.replace(/"/g,'""')}"`,`"${(l.desc||"").replace(/"/g,'""')}"`,l.qty,l.unit,l.price,l.cat,l.rate,l.disc,l.lineNet,l.lineTax,l.lineGross].join(sep));
+  const csv=[head,...rows].join("\n");
+  const blob=new Blob([csv],{type:"text/csv"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`${d.header.number||"invoice"}_positionen.csv`;a.click();
+};
+
+function wrapLines(text,font,size,maxWidth){
+  if(!text) return [""];
+  const lines=[];
+  const paragraphs=String(text).split(/\r?\n/);
+  for(const para of paragraphs){
+    const words=para.split(/\s+/);
+    let cur="";
+    for(const w of words){
+      const test=cur?cur+" "+w:w;
+      if(font.widthOfTextAtSize(test, size) > maxWidth){
+        if(cur) lines.push(cur);
+        cur=w;
+      }else{
+        cur=test;
+      }
+    }
+    lines.push(cur);
+  }
+  return lines;
+}
+
+async function canvasQR(text,size){
+  return await new Promise((res,rej)=>{
+    const c=document.createElement("canvas"); QRCode.toCanvas(c,text,{width:size,height:size,errorCorrectionLevel:"M"},err=>{
+      if(err) return rej(err);
+      c.toBlob(b=>{const fr=new FileReader(); fr.onload=()=>res(fr.result); fr.readAsArrayBuffer(b);});
+    });
+  });
+}
+
+function buildXMP(d){
+  const now=new Date().toISOString();
+  const title=`Rechnung ${d.header.number}`;
+  const fxConf=(d.header.profile||"EN16931");
+  return `<?xpacket begin="﻿" id="W5M0MpCehiHzreSzNTczkc9d"?>
+<x:xmpmeta xmlns:x="adobe:ns:meta/">
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+         xmlns:dc="http://purl.org/dc/elements/1.1/"
+         xmlns:xmp="http://ns.adobe.com/xap/1.0/"
+         xmlns:pdfaid="http://www.aiim.org/pdfa/ns/id/"
+         xmlns:fx="urn:factur-x:pdfa:CrossIndustryDocument:invoice:1p0#">
+  <rdf:Description rdf:about="">
+    <pdfaid:part>3</pdfaid:part>
+    <pdfaid:conformance>B</pdfaid:conformance>
+  </rdf:Description>
+  <rdf:Description rdf:about="">
+    <fx:DocumentType>INVOICE</fx:DocumentType>
+    <fx:Version>1.0</fx:Version>
+    <fx:ConformanceLevel>${fxConf}</fx:ConformanceLevel>
+  </rdf:Description>
+  <rdf:Description rdf:about="" xmlns:pdf="http://ns.adobe.com/pdf/1.3/">
+    <pdf:Producer>pdf-lib</pdf:Producer>
+  </rdf:Description>
+  <rdf:Description rdf:about="" xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <dc:title><rdf:Alt><rdf:li xml:lang="x-default">${xmlEscape(title)}</rdf:li></rdf:Alt></dc:title>
+    <dc:creator><rdf:Seq><rdf:li>${xmlEscape(d.seller.name||"")}</rdf:li></rdf:Seq></dc:creator>
+  </rdf:Description>
+  <rdf:Description rdf:about="">
+    <xmp:CreateDate>${now}</xmp:CreateDate>
+    <xmp:ModifyDate>${now}</xmp:ModifyDate>
+    <xmp:CreatorTool>E-Rechnung Generator</xmp:CreatorTool>
+  </rdf:Description>
+</rdf:RDF>
+</x:xmpmeta>
+<?xpacket end="w"?>`;
+}
+
+const SRGB_ICC=`AAAPN2ljYwAAACJnY2NwICBJRUMgNjE5NjYtMi4xIGRlZmF1bHQgc3JnYiBwcm9maWxlAAAAAAEAAQAAAQAAAwAAAAEACG1sdWMAAAEwbW5kICBJRUMgNjE5NjYtMi4xAAAAAAEAAABYAAABfGNwcnQAAAABAAAAAQAAAQAAAAEAAAAAAAAAAAAA`.replace(/\s+/g,"");
+
+function base64ToBytes(b64){const bin=atob(b64);const len=bin.length;const bytes=new Uint8Array(len);for(let i=0;i<len;i++)bytes[i]=bin.charCodeAt(i);return bytes;}
+
+async function embedFileAF(pdfDoc, bytes, fileName, mime, desc){
+  const { PDFName, PDFString } = PDFLib;
+  const ctx = pdfDoc.context;
+  const efStream = ctx.stream(bytes, {
+    Type: 'EmbeddedFile',
+    Subtype: PDFName.of((mime||'application#2Foctet-stream').replace('/','#2F')),
+    Params: ctx.obj({ Size: bytes.length })
+  });
+  const efRef = ctx.register(efStream);
+  const fileSpec = ctx.obj({
+    Type: 'Filespec',
+    F: PDFString.of(fileName),
+    UF: PDFString.of(fileName),
+    EF: { F: efRef, UF: efRef },
+    Desc: PDFString.of(desc||''),
+    AFRelationship: PDFName.of('Alternative')
+  });
+  const fsRef = ctx.register(fileSpec);
+  let names = pdfDoc.catalog.lookup(PDFName.of('Names'));
+  if(!names){
+    names = ctx.obj({}); pdfDoc.catalog.set(PDFName.of('Names'), names);
+  }
+  const embedded = ctx.obj({
+    Names: [ PDFString.of(fileName), fsRef ]
+  });
+  names.set(PDFName.of('EmbeddedFiles'), embedded);
+  const afArr = ctx.obj([ fsRef ]);
+  pdfDoc.catalog.set(PDFName.of('AF'), afArr);
+}
+
+async function buildPDF(d, xmlText){
+  const {PDFDocument, StandardFonts, rgb, PDFName, PDFArray}=PDFLib;
+  const doc=await PDFDocument.create();
+  doc.setTitle(`Rechnung ${d.header.number}`,{showInWindowTitleBar:true});
+  doc.setAuthor(d.seller.name||"");
+  doc.setProducer("pdf-lib");
+  doc.setCreator("E-Rechnung Generator");
+  doc.setCreationDate(new Date());
+  doc.setModificationDate(new Date());
+  doc.setLanguage("de-DE");
+
+  const font=await doc.embedFont(StandardFonts.Helvetica);
+
+  const pageSize=[595.28,841.89];
+  let page=doc.addPage(pageSize);
+  const margin=40; let y=pageSize[1]-margin;
+
+  const draw=(text,x,yy,size=10)=>{page.drawText(String(text||""),{x,y:yy,size,font,color:rgb(0,0,0)})};
+  const line=()=>{y-=12; page.drawLine({start:{x:margin,y}, end:{x:pageSize[0]-margin,y}, color:rgb(.8,.8,.8), thickness:1}); y-=8;}
+
+  draw(d.seller.name,margin,y,14); y-=16;
+  draw((d.seller.street||""),margin,y); y-=12;
+  draw([d.seller.zip,d.seller.city].filter(Boolean).join(" "),margin,y); y-=12;
+  draw(d.seller.country,margin,y); y-=18;
+  if(d.seller.vat){draw(`USt-IdNr.: ${d.seller.vat}`,margin,y); y-=12;}
+  if(d.seller.fc){draw(`Steuer-Nr.: ${d.seller.fc}`,margin,y); y-=12;}
+  if(d.seller.reg){draw(`HR: ${d.seller.reg}`,margin,y); y-=20;}
+  draw(`Rechnung ${d.header.number}`,pageSize[0]-margin-200,y,16); y-=18;
+  draw(`Datum: ${d.header.date}`,pageSize[0]-margin-200,y); y-=12;
+  if(d.header.dueDate){draw(`Fällig: ${d.header.dueDate}`,pageSize[0]-margin-200,y); y-=12;}
+  if(d.header.orderRef){draw(`Bestellref.: ${d.header.orderRef}`,pageSize[0]-margin-200,y); y-=12;}
+  y-=6; line();
+
+  draw("Rechnung an:",margin,y); y-=14;
+  draw(d.buyer.name,margin,y,12); y-=14;
+  if(d.buyer.street){draw(d.buyer.street,margin,y); y-=12;}
+  draw([d.buyer.zip,d.buyer.city].filter(Boolean).join(" "),margin,y); y-=12;
+  draw(d.buyer.country,margin,y); y-=16;
+  if(d.header.buyerRef){draw(`Käuferreferenz: ${d.header.buyerRef}`,margin,y); y-=12;}
+  if(d.header.supplyDate){draw(`Leistungsdatum: ${d.header.supplyDate}`,margin,y); y-=12;}
+  if(d.header.notes){
+    y-=6; draw("Hinweise:",margin,y); y-=12;
+    const nl=wrapLines(d.header.notes, font, 10, pageSize[0]-2*margin);
+    for(const t of nl){page.drawText(t,{x:margin,y,size:10,font}); y-=12;}
+    y-=4;
+  }
+  y-=6; line();
+
+  const head=["Pos","Bezeichnung","Menge","Einheit","EP netto","USt%","Netto","MwSt","Brutto"];
+  const col=[0,50,320,380,440,500,560,620,680].map(v=>v?margin+v:margin);
+  page.drawText(head.join("  "),{x:margin,y,size:10,font,color:rgb(0,0,0)}); y-=14;
+
+  let pageno=1;
+  for(const it of d.lines){
+    if(y<margin+120){ footer(); page=doc.addPage(pageSize); y=pageSize[1]-margin; header(); pageno++; }
+    const nm=(it.name+(it.desc?(" – "+it.desc):""));
+    const nmWrapped=wrapLines(nm, font, 10, pageSize[0]-margin-col[1]);
+
+    page.drawText(String(it.pos),{x:col[0],y,size:10,font});
+    page.drawText(nmWrapped[0],{x:col[1],y,size:10,font});
+    page.drawText((Math.round(it.qty*100)/100).toFixed(2),{x:col[2],y,size:10,font});
+    page.drawText(it.unit,{x:col[3],y,size:10,font});
+    page.drawText((Math.round(it.price*100)/100).toFixed(2),{x:col[4],y,size:10,font});
+    page.drawText((Math.round(it.rate*100)/100).toFixed(2),{x:col[5],y,size:10,font});
+    page.drawText((Math.round(it.lineNet*100)/100).toFixed(2),{x:col[6],y,size:10,font});
+    page.drawText((Math.round(it.lineTax*100)/100).toFixed(2),{x:col[7],y,size:10,font});
+    page.drawText((Math.round(it.lineGross*100)/100).toFixed(2),{x:col[8],y,size:10,font});
+    y-=14;
+
+    if(nmWrapped.length>1){
+      nmWrapped.slice(1).forEach(t=>{page.drawText(t,{x:col[1],y,size:10,font}); y-=12;});
+    }
+  }
+
+  y-=6; line();
+  const bxY=y-4; const bxX=pageSize[0]-margin-220;
+  page.drawRectangle({x:bxX,y:bxY-60,width:220,height:60,borderColor:rgb(.8,.8,.8),borderWidth:1});
+  page.drawText(`Zwischensumme netto: ${d.totals.net.toFixed(2)} ${d.header.currency}`,{x:bxX+8,y:bxY-16,size:11,font});
+  page.drawText(`Steuern: ${d.totals.tax.toFixed(2)} ${d.header.currency}`,{x:bxX+8,y:bxY-30,size:11,font});
+  page.drawText(`Gesamt brutto: ${d.totals.gross.toFixed(2)} ${d.header.currency}`,{x:bxX+8,y:bxY-46,size:12,font});
+  y=bxY-76; y-=10;
+
+  if(d.payment.iban){
+    page.drawText("Zahlung:",{x:margin,y,size:11,font}); y-=13;
+    page.drawText(`IBAN: ${d.payment.iban}${isValidIBAN(d.payment.iban)?"":" (prüfen)"}`,{x:margin,y,size:10,font}); y-=12;
+    if(d.payment.bic){page.drawText(`BIC: ${d.payment.bic}`,{x:margin,y,size:10,font}); y-=12;}
+    if(d.payment.holder){page.drawText(`Kontoinhaber: ${d.payment.holder}`,{x:margin,y,size:10,font}); y-=12;}
+    if(d.payment.terms){page.drawText(`Zahlungsziel: ${d.payment.terms}`,{x:margin,y,size:10,font}); y-=12;}
+    const epc=epcString(); if(epc){
+      const png=await canvasQR(epc,220); const img=await doc.embedPng(png); const dim=img.scale(0.4);
+      page.drawImage(img,{x:pageSize[0]-margin- dim.width,y:y- dim.height,width:dim.width,height:dim.height}); y-=dim.height+10;
+    }
+  }
+
+  function header(){draw(d.seller.name,margin,y,14); y-=18; draw(`Rechnung ${d.header.number}`,pageSize[0]-margin-200,y,16); y-=18; line();}
+  function footer(){
+    page.drawLine({start:{x:margin,y:40},end:{x:pageSize[0]-margin,y:40},color:rgb(.85,.85,.9),thickness:1});
+    page.drawText((d.seller.email||"")+"  "+(d.seller.phone||""),{x:margin,y:26,size:9,font,color:rgb(.2,.2,.2)});
+    page.drawText(`Seite ${pageno}`,{x:pageSize[0]-margin-60,y:26,size:9,font,color:rgb(.2,.2,.2)});
+  }
+  footer();
+
+  const xmlBytes=new TextEncoder().encode(xmlText);
+  await embedFileAF(doc, xmlBytes, `${d.header.number||"invoice"}.xml`, 'application/xml', 'ZUGFeRD/Factur-X XML');
+
+  const xmp=buildXMP(d);
+  const metaStream=doc.context.stream(new TextEncoder().encode(xmp), {Type: 'Metadata', Subtype: 'XML'});
+  const metaRef=doc.context.register(metaStream);
+  doc.catalog.set(PDFName.of('Metadata'), metaRef);
+
+  const icc=base64ToBytes(SRGB_ICC);
+  const iccStream=doc.context.stream(icc,{N:3});
+  const iccRef=doc.context.register(iccStream);
+  const oi=doc.context.obj({
+    Type: 'OutputIntent',
+    S: 'GTS_PDFA1',
+    OutputConditionIdentifier: 'sRGB IEC61966-2.1',
+    Info: 'sRGB IEC61966-2.1',
+    DestOutputProfile: iccRef
+  });
+  const oiRef=doc.context.register(oi);
+  const arr=PDFArray.withContext(doc.context); arr.push(oiRef);
+  doc.catalog.set(PDFName.of('OutputIntents'), arr);
+
+  const bytes=await doc.save({useObjectStreams:false, addDefaultPage:false});
+  return new Blob([bytes],{type:"application/pdf"});
+}
+
+$("#genPdf").onclick=async()=>{
+  const data=collect(); const errs=validate(data);
+  if(errs.length){alert("Fehlende/ungültige Felder:\n- "+errs.join("\n- "));return}
+  const xml=buildCII(data);
+  const pdfBlob=await buildPDF(data, xml);
+  const a=document.createElement("a"); a.href=URL.createObjectURL(pdfBlob); a.download=`${data.header.number||"invoice"}.pdf`; a.click();
+  $("#xmlOut").textContent=xml;
+};
+
+$("#btnReset").onclick=()=>{
+  $$("input,textarea").forEach(el=>{
+    if(el.id==="invDate"){el.value=today();return;}
+    if(el.type==="date"){el.value="";return;}
+    if(el.tagName==="SELECT") return;
+    el.value="";
+  });
+  $("#currency").value="EUR"; $("#profile").value="EN16931";
+  $("#items tbody").innerHTML=""; addRow({price:100,qty:1,rate:19,unit:"C62",cat:"S"});
+  recalc();
+};
+
+$("#btnSample").onclick=()=>{
+  $("#profile").value="EN16931";
+  $("#invNumber").value="RE-2025-0815";
+  $("#invDate").value=today();
+  $("#dueDate").value=new Date(Date.now()+14*86400000).toISOString().slice(0,10);
+  $("#currency").value="EUR";
+  $("#orderRef").value="PO-45678";
+  $("#buyerRef").value="KST-100/Schmidt";
+  $("#supplyDate").value=today();
+  $("#notes").value="Zahlbar 14 Tage netto. Vielen Dank!";
+  $("#sellerName").value="Muster GmbH";
+  $("#sellerStreet").value="Hauptstraße 1";
+  $("#sellerZip").value="10115";
+  $("#sellerCity").value="Berlin";
+  $("#sellerCountry").value="DE";
+  $("#sellerVAT").value="DE123456789";
+  $("#sellerFC").value="";
+  $("#sellerReg").value="HRB 999999";
+  $("#sellerEmail").value="rechnung@muster-gmbh.de";
+  $("#sellerPhone").value="+49 30 123456";
+  $("#buyerName").value="Beispiel AG";
+  $("#buyerStreet").value="Platz der Einheit 5";
+  $("#buyerZip").value="60311";
+  $("#buyerCity").value="Frankfurt am Main";
+  $("#buyerCountry").value="DE";
+  $("#buyerVAT").value="DE987654321";
+  $("#buyerEmail").value="buchhaltung@beispiel-ag.de";
+  $("#payType").value="58";
+  $("#iban").value="DE89370400440532013000";
+  $("#bic").value="COBADEFFXXX";
+  $("#accHolder").value="Muster GmbH";
+  $("#payTerms").value="14 Tage netto";
+  $("#remittance").value="Rechnung RE-2025-0815";
+  $("#items tbody").innerHTML="";
+  addRow({pos:1,name:"Beratung",desc:"IT-Consulting",qty:8,unit:"HUR",price:120,rate:19,cat:"S"});
+  addRow({pos:2,name:"Software-Lizenz",desc:"Pro Jahr",qty:1,unit:"C62",price:799,rate:19,cat:"S"});
+  addRow({pos:3,name:"Wartung",desc:"12 Monate",qty:1,unit:"C62",price:300,rate:0,cat:"Z"});
+  recalc();
+};
+
+/* PWA */
+(function(){
+  const manifest = {
+    name: "E-Rechnung Generator",
+    short_name: "E-Rechnung",
+    start_url: ".",
+    display: "standalone",
+    background_color: "#ffffff",
+    theme_color: "#0d6efd",
+    icons: [
+      { src: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAYAAABl8KqfAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAAG0lEQVR42u3BMQEAAADCoPVPbQhPoAAAAAAAAAAAwOcG2AAB1q2b0wAAAABJRU5ErkJggg==", sizes: "192x192", type: "image/png" },
+      { src: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAYAAABccqhmAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAAG0lEQVR42u3BMQEAAADCoPVPbQhPoAAAAAAAAAAAwOcG2AAB1q2b0wAAAABJRU5ErkJggg==", sizes: "512x512", type: "image/png" }
+    ]
+  };
+  const blob = new Blob([JSON.stringify(manifest)], {type: "application/json"});
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("link");
+  link.rel = "manifest"; link.href = url; document.head.appendChild(link);
+
+  let deferredPrompt=null;
+
+  if('serviceWorker' in navigator){
+    const swCode = `
+      const C='erechnung-v1';
+      const ASSETS=[ self.location.href,
+        'https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js',
+        'https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js'
+      ];
+      self.addEventListener('install',e=>{ e.waitUntil(caches.open(C).then(c=>c.addAll(ASSETS.map(u=>new Request(u,{mode:'no-cors'})))).then(()=>self.skipWaiting()))});
+      self.addEventListener('activate',e=>{ e.waitUntil(self.clients.claim())});
+      self.addEventListener('fetch',e=>{
+        const req=e.request;
+        e.respondWith(
+          caches.match(req).then(r=> r || fetch(req).then(res=>{ const copy=res.clone(); caches.open(C).then(c=>c.put(req, copy)); return res; }).catch(()=>caches.match(self.location.href)))
+        );
+      });
+    `;
+    const swBlob = new Blob([swCode], {type:'text/javascript'});
+    const swUrl = URL.createObjectURL(swBlob);
+    navigator.serviceWorker.register(swUrl, {scope: './'}).catch(()=>{});
+  }
+})();
+</script>
+</body>
+</html>
