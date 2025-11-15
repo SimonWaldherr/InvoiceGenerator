@@ -200,6 +200,72 @@ a:hover{text-decoration:underline}
       </div>
     </div>
 
+    <!-- PDF Optionen -->
+    <div class="card" style="grid-column: span 12;">
+      <strong>PDF‑Optionen</strong>
+      <div class="grid" style="grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 8px;">
+        <div class="kv">
+          <label>Layout</label>
+          <select id="pdfLayout">
+            <option value="classic">Klassisch</option>
+            <option value="compact">Kompakt</option>
+            <option value="letterhead">Briefkopf</option>
+            <option value="modern">Modern</option>
+            <option value="minimal">Minimal</option>
+          </select>
+          <label>Farbschema</label>
+          <select id="colorScheme">
+            <option value="default">Standard (Schwarz)</option>
+            <option value="blue">Blau</option>
+            <option value="green">Grün</option>
+            <option value="red">Rot</option>
+            <option value="purple">Lila</option>
+            <option value="custom">Benutzerdefiniert</option>
+          </select>
+          <label>Akzentfarbe (Hex)</label>
+          <input id="accentColor" type="color" value="#0066cc"/>
+        </div>
+        <div class="kv">
+          <label>Schriftart</label>
+          <select id="fontFamily">
+            <option value="helvetica">Helvetica</option>
+            <option value="times">Times</option>
+            <option value="courier">Courier</option>
+          </select>
+          <label>Tabellen‑Schriftgröße</label>
+          <input id="tableFontSize" type="number" min="8" max="14" value="10"/>
+          <label>Kopfzeilen‑Größe</label>
+          <input id="headerFontSize" type="number" min="12" max="20" value="16"/>
+        </div>
+        <div class="kv">
+          <label>Logo‑Position</label>
+          <select id="logoPos">
+            <option value="right">Rechts</option>
+            <option value="left">Links</option>
+            <option value="top">Oben</option>
+            <option value="watermark">Wasserzeichen</option>
+          </select>
+          <label>Logo‑Breite (px)</label>
+          <input id="logoWidth" type="number" min="40" max="400" value="140"/>
+          <label>Logo auf allen Seiten</label>
+          <div class="row"><input id="logoAllPages" type="checkbox"/><span class="small">Logo auch auf Folgeseiten</span></div>
+        </div>
+        <div class="kv">
+          <label>Tabellen‑Stil</label>
+          <select id="tableStyle">
+            <option value="simple">Einfach</option>
+            <option value="bordered">Umrandet</option>
+            <option value="zebra">Zebrastreifen</option>
+            <option value="modern">Modern</option>
+          </select>
+          <label>Seitenränder</label>
+          <input id="pageMargin" type="number" min="20" max="60" value="40"/>
+          <label>Zeilenhöhe</label>
+          <input id="lineHeight" type="number" min="10" max="20" value="14" step="1"/>
+        </div>
+      </div>
+    </div>
+
     <!-- Items -->
     <div class="card" style="grid-column: span 12;">
       <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:8px">
@@ -294,7 +360,12 @@ const today=()=>new Date().toISOString().slice(0,10);
 const VAT_CATS=[{c:"S",t:"Standardbesteuert"},{c:"Z",t:"Nullsteuer"},{c:"E",t:"Steuerbefreit"},{c:"AE",t:"Reverse Charge"},{c:"K",t:"Kleinunternehmer"}];
 let unitDefault="C62";
 const LS={prefix:"invgen_",k:{defaults:"invgen_defaults",contacts:"invgen_contacts",history:"invgen_history",lastNr:"invgen_lastNr",logo:"invgen_logo",unit:"invgen_unit"}};
+let logoTemp=null;
 const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
+const roundCurrency=(n)=>{
+  const num=Number(n)||0;
+  return Math.round((num+Number.EPSILON)*100)/100;
+};
 function padNum(n, len){const s=String(n); return s.length>=len?s:("0".repeat(len-s.length)+s);}
 function nextInvoiceNumber(s){
   if(!s) return "RE-"+(new Date().getFullYear())+"-0001";
@@ -347,15 +418,17 @@ function recalc(){
     const price=parseFloat(tr.querySelector(".price").value||"0");
     const disc=parseFloat(tr.querySelector(".disc").value||"0");
     const rate=parseFloat(tr.querySelector(".vatrate").value||"0");
-    let lineNet=qty*price;
-    if(disc>0){lineNet=lineNet*(1-disc/100);}
+    let lineNet=roundCurrency(qty*price);
+    if(disc>0){lineNet=roundCurrency(lineNet*(1-disc/100));}
     const cat=tr.querySelector(".vatcat").value;
-    const lineTax=(cat==="Z"||cat==="E"||cat==="K")?0:lineNet*rate/100;
-    const lineGross=lineNet+lineTax;
+    const lineTax=(cat==="Z"||cat==="E"||cat==="K")?0:roundCurrency(lineNet*rate/100);
+    const lineGross=roundCurrency(lineNet+lineTax);
     tr.querySelector(".lnet").textContent=fmt(lineNet);
     tr.querySelector(".ltax").textContent=fmt(lineTax);
     tr.querySelector(".lgross").textContent=fmt(lineGross);
-    net+=lineNet;tax+=lineTax;gross+=lineGross;
+    net=roundCurrency(net+lineNet);
+    tax=roundCurrency(tax+lineTax);
+    gross=roundCurrency(gross+lineGross);
   });
   $("#tNet").textContent=fmt(net);$("#tTax").textContent=fmt(tax);$("#tGross").textContent=fmt(gross);
   $("#tCur").textContent=cur;$("#tCur2").textContent=cur;$("#tCur3").textContent=cur;
@@ -369,7 +442,7 @@ function isValidIBAN(i){const s=ibanClean(i);if(!/^[A-Z]{2}\d{2}[A-Z0-9]{1,30}$/
 function epcString(){
   const iban=ibanClean($("#iban").value);const bic=$("#bic").value.trim();const name=$("#sellerName").value.trim().slice(0,70);
   const gross=parseFloat($("#tGross").textContent.replace(/\./g,"").replace(",",".").split(" ")[0]||"0");
-  const amount=gross>0?gross:0;
+  const amount=gross>0?roundCurrency(gross):0;
   const rem=($("#remittance").value||("Rechnung "+($("#invNumber").value||""))).slice(0,140);
   if(!iban||!name||!amount) return null;
   return ["BCD","002","1","SCT",bic||"",name,iban,`EUR${amount.toFixed(2)}`,"","",rem,""].join("\n");
@@ -446,24 +519,55 @@ function collect(){
   const lines=[]; const taxByRate=new Map();
   $("#items tbody").querySelectorAll("tr").forEach((tr,idx)=>{
     const obj=rowToObj(tr);
-    let lineNet=obj.qty*obj.price; if(obj.disc>0) lineNet=lineNet*(1-obj.disc/100);
-    const lineTax=(obj.cat==="Z"||obj.cat==="E"||obj.cat==="K")?0:lineNet*obj.rate/100;
-    const lineGross=lineNet+lineTax;
+    let lineNet=roundCurrency(obj.qty*obj.price);
+    if(obj.disc>0) lineNet=roundCurrency(lineNet*(1-obj.disc/100));
+    const taxable=(obj.cat==="Z"||obj.cat==="E"||obj.cat==="K")?0:roundCurrency(lineNet*obj.rate/100);
+    const lineTax=taxable;
+    const lineGross=roundCurrency(lineNet+lineTax);
     const out={...obj,lineNet,lineTax,lineGross,pos:obj.pos||String(idx+1)};
     lines.push(out);
     if(lineTax>0){
       const k=`${out.cat}|${out.rate}`;
       const prev=taxByRate.get(k)||{cat:out.cat,rate:out.rate,base:0,tax:0};
-      prev.base+=lineNet; prev.tax+=lineTax; taxByRate.set(k,prev);
+      prev.base=roundCurrency(prev.base+lineNet); prev.tax=roundCurrency(prev.tax+lineTax); taxByRate.set(k,prev);
     }
   });
+  const totalsRaw=lines.reduce((acc,l)=>({
+    net:acc.net+l.lineNet,
+    tax:acc.tax+l.lineTax,
+    gross:acc.gross+l.lineGross
+  }),{net:0,tax:0,gross:0});
   const totals={
-    net:lines.reduce((s,l)=>s+l.lineNet,0),
-    tax:lines.reduce((s,l)=>s+l.lineTax,0),
-    gross:lines.reduce((s,l)=>s+l.lineGross,0),
-    due:lines.reduce((s,l)=>s+l.lineGross,0)
+    net:roundCurrency(totalsRaw.net),
+    tax:roundCurrency(totalsRaw.tax),
+    gross:roundCurrency(totalsRaw.gross)
   };
-  return {header,seller,buyer,payment,lines,taxBreakdown:[...taxByRate.values()],totals,meta:{logo:getLogo(),unitDefault}};
+  const breakdown=[...taxByRate.values()].map(tb=>({
+    cat:tb.cat,
+    rate:tb.rate,
+    base:roundCurrency(tb.base),
+    tax:roundCurrency(tb.tax)
+  }));
+  const taxSum=roundCurrency(breakdown.reduce((sum,t)=>sum+t.tax,0));
+  if(Math.abs(taxSum-totals.tax)>0.009){ totals.tax=taxSum; }
+  const grossCheck=roundCurrency(totals.net+totals.tax);
+  totals.gross=grossCheck;
+  totals.due=grossCheck;
+  const pdfOpts={
+    layout: $("#pdfLayout")?.value||"classic",
+    colorScheme: $("#colorScheme")?.value||"default",
+    accentColor: $("#accentColor")?.value||"#0066cc",
+    fontFamily: $("#fontFamily")?.value||"helvetica",
+    logoPos: $("#logoPos")?.value||"right",
+    logoWidth: clamp(parseInt($("#logoWidth")?.value||"140",10)||140,40,400),
+    logoAllPages: $("#logoAllPages")?.checked||false,
+    tableFontSize: clamp(parseInt($("#tableFontSize")?.value||"10",10)||10,8,14),
+    headerFontSize: clamp(parseInt($("#headerFontSize")?.value||"16",10)||16,12,20),
+    tableStyle: $("#tableStyle")?.value||"simple",
+    pageMargin: clamp(parseInt($("#pageMargin")?.value||"40",10)||40,20,60),
+    lineHeight: clamp(parseInt($("#lineHeight")?.value||"14",10)||14,10,20)
+  };
+  return {header,seller,buyer,payment,lines,taxBreakdown:breakdown,totals,meta:{logo:logoTemp||getLogo(),unitDefault,pdf:pdfOpts}};
 }
 
 function populate(d){
@@ -490,6 +594,19 @@ function populate(d){
   if(!d.lines||!d.lines.length) addRow({price:100,qty:1,rate:19,unit:"C62",cat:"S"});
   if(d.meta?.logo) setLogo(d.meta.logo);
   if(d.meta?.unitDefault){ unitDefault=d.meta.unitDefault; $("#unitDefaultLbl").textContent=unitDefault; }
+  const pdf=d.meta?.pdf||{};
+  $("#pdfLayout").value=pdf.layout||"classic";
+  $("#colorScheme").value=pdf.colorScheme||"default";
+  $("#accentColor").value=pdf.accentColor||"#0066cc";
+  $("#fontFamily").value=pdf.fontFamily||"helvetica";
+  $("#logoPos").value=pdf.logoPos||"right";
+  $("#logoWidth").value=pdf.logoWidth||140;
+  $("#logoAllPages").checked=!!pdf.logoAllPages;
+  $("#tableFontSize").value=pdf.tableFontSize||10;
+  $("#headerFontSize").value=pdf.headerFontSize||16;
+  $("#tableStyle").value=pdf.tableStyle||"simple";
+  $("#pageMargin").value=pdf.pageMargin||40;
+  $("#lineHeight").value=pdf.lineHeight||14;
   recalc();
 }
 
@@ -726,103 +843,619 @@ async function buildPDF(d, xmlText){
   doc.setModificationDate(new Date());
   doc.setLanguage("de-DE");
 
-  const font=await doc.embedFont(StandardFonts.Helvetica);
+  const opts = d.meta?.pdf||{};
+  const layout=(opts.layout||"classic");
+  const margin = clamp(opts.pageMargin||40,20,60);
+  const tableFontSize = clamp(opts.tableFontSize||10,8,14);
+  const headerFontSize = clamp(opts.headerFontSize||16,12,20);
+  const lineHeight = clamp(opts.lineHeight||14,10,20);
+  
+  // Color schemes
+  const colorSchemes = {
+    default: { primary: rgb(0.12,0.14,0.18), accent: rgb(0.05,0.38,0.68), light: rgb(0.9,0.94,0.99) },
+    blue: { primary: rgb(0,0.2,0.6), accent: rgb(0,0.4,0.8), light: rgb(0.9,0.95,1) },
+    green: { primary: rgb(0,0.4,0.2), accent: rgb(0,0.6,0.3), light: rgb(0.9,1,0.95) },
+    red: { primary: rgb(0.6,0,0), accent: rgb(0.8,0.2,0.2), light: rgb(1,0.95,0.95) },
+    purple: { primary: rgb(0.4,0,0.6), accent: rgb(0.6,0.2,0.8), light: rgb(0.98,0.95,1) },
+    custom: (() => {
+      const hex = opts.accentColor || "#0066cc";
+      const r = parseInt(hex.slice(1,3), 16) / 255;
+      const g = parseInt(hex.slice(3,5), 16) / 255;
+      const b = parseInt(hex.slice(5,7), 16) / 255;
+      return { primary: rgb(r*0.8, g*0.8, b*0.8), accent: rgb(r, g, b), light: rgb(0.95, 0.97, 1) };
+    })()
+  };
+  const colors = colorSchemes[opts.colorScheme] || colorSchemes.default;
+  
+  // Font selection
+  const fontMap = {
+    helvetica: StandardFonts.Helvetica,
+    times: StandardFonts.TimesRoman,
+    courier: StandardFonts.Courier
+  };
+  const font = await doc.embedFont(fontMap[opts.fontFamily] || StandardFonts.Helvetica);
+  const boldFont = await doc.embedFont(
+    opts.fontFamily === 'times' ? StandardFonts.TimesRomanBold :
+    opts.fontFamily === 'courier' ? StandardFonts.CourierBold : StandardFonts.HelveticaBold
+  );
+  
   const pageSize=[595.28,841.89];
   let page=doc.addPage(pageSize);
-  const margin=40; let y=pageSize[1]-margin;
-  const draw=(text,x,yy,size=10)=>{page.drawText(String(text||""),{x,y:yy,size,font,color:rgb(0,0,0)})};
-  const line=()=>{y-=12; page.drawLine({start:{x:margin,y}, end:{x:pageSize[0]-margin,y}, color:rgb(.8,.8,.8), thickness:1}); y-=8;}
+  let y=pageSize[1]-margin;
+  const nfmt=(n)=>{
+    try{ return Number(n||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}); }
+    catch{ return (Math.round((n||0)*100)/100).toFixed(2); }
+  };
+  const draw=(text,x,yy,size=10,color=colors.primary,fontType=font)=>{page.drawText(String(text||""),{x,y:yy,size,font:fontType,color})};
+  const rdraw=(text,rightX,yy,size=10,color=colors.primary,fontType=font)=>{const t=String(text||""); const w=fontType.widthOfTextAtSize(t,size); page.drawText(t,{x:rightX-w,y:yy,size,font:fontType,color});};
+  const lineH=(yy,color=colors.light)=>{page.drawLine({start:{x:margin,y:yy}, end:{x:pageSize[0]-margin,y:yy}, color, thickness:1})};
 
-  /* Logo top-right */
+  const white=rgb(1,1,1);
+  const clamp01=(v)=>Math.max(0,Math.min(1,v));
+  const mixColor=(c1,c2,ratio)=>rgb(
+    clamp01(c1.red + (c2.red - c1.red)*ratio),
+    clamp01(c1.green + (c2.green - c1.green)*ratio),
+    clamp01(c1.blue + (c2.blue - c1.blue)*ratio)
+  );
+  const lighten=(color,ratio=0.85)=>mixColor(color,white,ratio);
+
+  const accentSoft=lighten(colors.accent,0.88);
+  const accentSofter=lighten(colors.accent,0.94);
+  const zebraSoft=lighten(colors.accent,0.92);
+
+  const layoutStyleMap={
+    classic:{
+      headerGap:14,
+      metaWidth:220,
+      metaFill:white,
+      metaBorder:lighten(colors.accent,0.7),
+      metaBorderWidth:1,
+      metaHeaderFill:colors.accent,
+      metaHeaderTextColor:white,
+      metaHeaderHeight:headerFontSize+12,
+      metaHeaderTextInset:headerFontSize+4,
+      metaTextColor:colors.primary,
+      metaPadTop:18,
+      metaPadBottom:10,
+      metaPadX:14,
+      metaShadow:lighten(colors.accent,0.4),
+      alignHeaderColumns:false,
+      sellerNameColor:colors.primary,
+      buyerFill:null,
+      buyerBorder:lighten(colors.accent,0.85),
+      buyerBorderWidth:0.6,
+      buyerAccentLineColor:colors.accent,
+      buyerTitleColor:colors.accent,
+      buyerTitleUppercase:false,
+      buyerLineGap:12,
+      buyerPadTop:10,
+      buyerPadBottom:10,
+      afterBuyerGap:10,
+      buyerTitleUnderlineColor:lighten(colors.accent,0.7),
+      buyerTitleUnderlineThickness:0.7,
+      headerDividerColor:lighten(colors.accent,0.75),
+      headerDividerThickness:1.1,
+      sectionDividerPre:12,
+      sectionDividerPost:8,
+      zebraStripeColor:lighten(colors.accent,0.9),
+      tableHeaderFillColor:lighten(colors.accent,0.88),
+      tableHeaderTextColor:colors.primary,
+      tableHeaderUnderlineColor:lighten(colors.accent,0.5),
+      totalsVariant:'accent',
+      totalsLabelColor:colors.primary,
+      totalsHighlightColor:colors.accent,
+      notesTitleColor:colors.accent
+    },
+    compact:{
+      headerGap:12,
+      metaWidth:210,
+      metaFill:white,
+      metaBorder:lighten(colors.accent,0.8),
+      metaHeaderFill:lighten(colors.accent,0.2),
+      metaHeaderTextColor:white,
+      metaHeaderHeight:headerFontSize+10,
+      metaHeaderTextInset:headerFontSize+2,
+      metaTextColor:colors.primary,
+      metaPadTop:16,
+      metaPadBottom:8,
+      metaPadX:10,
+      alignHeaderColumns:true,
+      sellerNameColor:colors.primary,
+      buyerFill:lighten(colors.accent,0.95),
+      buyerBorder:lighten(colors.accent,0.85),
+      buyerBorderWidth:0.6,
+      buyerTitleColor:colors.primary,
+      buyerTitleUppercase:false,
+      buyerLineGap:11,
+      buyerPadTop:6,
+      buyerPadBottom:8,
+      afterBuyerGap:8,
+      headerDividerColor:lighten(colors.accent,0.6),
+      headerDividerThickness:1,
+      sectionDividerPre:10,
+      sectionDividerPost:6,
+      zebraStripeColor:zebraSoft,
+      tableHeaderFillColor:lighten(colors.accent,0.9),
+      tableHeaderUnderlineColor:lighten(colors.accent,0.6),
+      totalsVariant:'filled',
+      totalsLabelColor:colors.primary,
+      totalsHighlightColor:colors.accent
+    },
+    letterhead:{
+      headerGap:14,
+      metaWidth:210,
+      metaFill:white,
+      metaBorder:lighten(colors.accent,0.85),
+      metaHeaderFill:lighten(colors.accent,0.9),
+      metaHeaderTextColor:colors.primary,
+      metaPadTop:14,
+      metaPadBottom:8,
+      metaPadX:12,
+      alignHeaderColumns:false,
+      sellerNameColor:colors.primary,
+      buyerTitleColor:colors.primary,
+      headerDividerColor:colors.light,
+      headerDividerThickness:0.8,
+      sectionDividerPre:10,
+      sectionDividerPost:8,
+      zebraStripeColor:zebraSoft,
+      totalsVariant:'accent',
+      totalsLabelColor:colors.primary
+    },
+    modern:{
+      headerGap:14,
+      metaWidth:230,
+      metaFill:white,
+      metaBorder:colors.accent,
+      metaHeaderFill:colors.accent,
+      metaHeaderTextColor:white,
+      metaTextColor:colors.primary,
+      metaHeaderColor:colors.accent,
+      metaPadTop:12,
+      metaPadBottom:10,
+      metaPadX:12,
+      alignHeaderColumns:true,
+      sellerNameColor:colors.accent,
+      buyerFill:lighten(colors.accent,0.9),
+      buyerBorder:colors.accent,
+      buyerTitleColor:colors.accent,
+      buyerTitleUppercase:true,
+      buyerLineGap:12,
+      buyerPadTop:10,
+      buyerPadBottom:10,
+      afterBuyerGap:12,
+      headerDividerColor:colors.accent,
+      headerDividerThickness:1.4,
+      sectionDividerPre:10,
+      sectionDividerPost:10,
+      zebraStripeColor:lighten(colors.accent,0.95),
+      sellerAccentColor:colors.accent,
+      notesTitleColor:colors.accent,
+      totalsVariant:'filled',
+      tableHeaderFillColor:lighten(colors.accent,0.82),
+      tableHeaderTextColor:colors.primary,
+      tableHeaderUnderlineColor:colors.accent
+    },
+    minimal:{
+      headerGap:12,
+      metaWidth:210,
+      metaBorder:colors.light,
+      metaTextColor:colors.primary,
+      metaHeaderColor:colors.primary,
+      metaPadTop:8,
+      metaPadBottom:6,
+      metaPadX:10,
+      alignHeaderColumns:true,
+      sellerNameColor:colors.primary,
+      buyerTitleColor:colors.primary,
+      buyerLineGap:11,
+      buyerPadTop:4,
+      buyerPadBottom:6,
+      afterBuyerGap:8,
+      headerDividerColor:colors.light,
+      headerDividerThickness:0.6,
+      sectionDividerPre:8,
+      sectionDividerPost:6,
+      zebraStripeColor:lighten(colors.accent,0.96),
+      totalsVariant:'outlined',
+      tableHeaderUnderlineColor:colors.light
+    }
+  };
+  const layoutStyle=layoutStyleMap[layout]||layoutStyleMap.classic;
+
+  const headerStep=layoutStyle.headerGap ?? (layout==="compact"?12:14);
+  const sectionDividerPre=layoutStyle.sectionDividerPre ?? 12;
+  const sectionDividerPost=layoutStyle.sectionDividerPost ?? 8;
+  const sectionDividerColor=layoutStyle.sectionDividerColor || layoutStyle.headerDividerColor || colors.light;
+
+  const line=()=>{y-=sectionDividerPre; lineH(y, sectionDividerColor); y-=sectionDividerPost;};
+
+  /* Logo handling: embed once, draw per page */
+  let logoImg=null, logoH=0, logoW=0;
   if(d.meta?.logo){
     try{
-      const {dataUrl}=d.meta.logo;
-      const isPng=dataUrl.startsWith("data:image/png");
+      const {dataUrl}=d.meta.logo; const isPng=dataUrl.startsWith("data:image/png");
       const bytes=await (await fetch(dataUrl)).arrayBuffer();
-      const img=isPng? await doc.embedPng(bytes) : await doc.embedJpg(bytes);
-      const w=140; const scale=w/img.width; const h=img.height*scale;
-      page.drawImage(img,{x:pageSize[0]-margin-w,y:y-h+10,width:w,height:h});
-    }catch(e){ /* ignore */ }
+      logoImg=isPng? await doc.embedPng(bytes) : await doc.embedJpg(bytes);
+      // initial width from options
+      logoW=clamp(opts.logoWidth||140,40,400);
+      let scale=logoW/logoImg.width;
+      let h=logoImg.height*scale;
+      const maxH=pageSize[1]*0.25; // max 25% of page height
+      if(h>maxH){
+        scale=maxH/logoImg.height;
+        logoW=logoImg.width*scale;
+        h=maxH;
+      }
+      logoH=h;
+    }catch(e){ logoImg=null }
   }
-
-  draw(d.seller.name,margin,y,14); y-=16;
-  draw((d.seller.street||""),margin,y); y-=12;
-  draw([d.seller.zip,d.seller.city].filter(Boolean).join(" "),margin,y); y-=12;
-  draw(d.seller.country,margin,y); y-=18;
-  if(d.seller.vat){draw(`USt-IdNr.: ${d.seller.vat}`,margin,y); y-=12;}
-  if(d.seller.fc){draw(`Steuer-Nr.: ${d.seller.fc}`,margin,y); y-=12;}
-  if(d.seller.reg){draw(`HR: ${d.seller.reg}`,margin,y); y-=20;}
-  draw(`Rechnung ${d.header.number}`,pageSize[0]-margin-200,y,16); y-=18;
-  draw(`Datum: ${d.header.date}`,pageSize[0]-margin-200,y); y-=12;
-  if(d.header.dueDate){draw(`Fällig: ${d.header.dueDate}`,pageSize[0]-margin-200,y); y-=12;}
-  if(d.header.orderRef){draw(`Bestellref.: ${d.header.orderRef}`,pageSize[0]-margin-200,y); y-=12;}
-  y-=6; line();
-
-  draw("Rechnung an:",margin,y); y-=14;
-  draw(d.buyer.name,margin,y,12); y-=14;
-  if(d.buyer.street){draw(d.buyer.street,margin,y); y-=12;}
-  draw([d.buyer.zip,d.buyer.city].filter(Boolean).join(" "),margin,y); y-=12;
-  draw(d.buyer.country,margin,y); y-=16;
-  if(d.header.buyerRef){draw(`Käuferreferenz: ${d.header.buyerRef}`,margin,y); y-=12;}
-  if(d.header.supplyDate){draw(`Leistungsdatum: ${d.header.supplyDate}`,margin,y); y-=12;}
-  if(d.header.notes){
-    y-=6; draw("Hinweise:",margin,y); y-=12;
-    const nl=wrapLines(d.header.notes, font, 10, pageSize[0]-2*margin);
-    for(const t of nl){page.drawText(t,{x:margin,y,size:10,font}); y-=12;}
-    y-=4;
+  function drawLogo(targetPage, yy){
+    if(!logoImg) return yy;
+    const pos=opts.logoPos||"right";
+    let x=pageSize[0]-margin-logoW;
+    if(pos==="left") x=margin;
+    if(pos==="top") x=(pageSize[0]-logoW)/2;
+    if(pos==="watermark"){
+      // Watermark in center with reduced opacity
+      const centerX = (pageSize[0]-logoW)/2;
+      const centerY = (pageSize[1]-logoH)/2;
+      targetPage.drawImage(logoImg,{x:centerX,y:centerY,width:logoW,height:logoH,opacity:0.1});
+      return yy; // Don't adjust y for watermark
+    }
+    targetPage.drawImage(logoImg,{x,y:yy-logoH+10,width:logoW,height:logoH});
+    return Math.min(yy, yy - (pos==="top"? (logoH+6) : 0));
   }
-  y-=6; line();
+  if(logoImg){ y = drawLogo(page, y); }
 
-  const head=["Pos","Bezeichnung","Menge","Einheit","EP netto","USt%","Netto","MwSt","Brutto"];
-  const col=[0,50,320,380,440,500,560,620,680].map(v=>v?margin+v:margin);
-  page.drawText(head.join("  "),{x:margin,y,size:10,font,color:rgb(0,0,0)}); y-=14;
+  const addLine=(arr,text,opts={})=>{
+    if(text===undefined||text===null) return;
+    const str=String(text);
+    if(!str.trim()) return;
+    arr.push({...opts,text:str});
+  };
+  const measureLines=(lines,defaultStep)=>lines.reduce((sum,line)=>sum+(line.step ?? defaultStep),0);
+  const drawLines=(lines,startX,startY,defaultStep=headerStep)=>{
+    let yy=startY;
+    for(const line of lines){
+      const size=line.size ?? 10;
+      const fontType=line.font || (line.bold ? boldFont : font);
+      const color=line.color ?? colors.primary;
+      const text=line.uppercase ? String(line.text||"").toUpperCase() : String(line.text||"");
+      const step=line.step ?? defaultStep;
+      const align=line.align || 'left';
+      if(align==='right'){
+        const rightX=line.rightX ?? startX;
+        rdraw(text,rightX,yy,size,color,fontType);
+      }else if(align==='center'){
+        const w=fontType.widthOfTextAtSize(text,size);
+        const centerX=(line.x ?? startX) - w/2;
+        page.drawText(text,{x:centerX,y:yy,size,font:fontType,color});
+      }else{
+        const x=line.x ?? startX;
+        page.drawText(text,{x,y:yy,size,font:fontType,color});
+      }
+      yy-=step;
+    }
+    return yy;
+  };
 
-  let pageno=1;
-  for(const it of d.lines){
-    if(y<margin+120){ footer(); page=doc.addPage(pageSize); y=pageSize[1]-margin; header(); pageno++; }
-    const nm=(it.name+(it.desc?(" – "+it.desc):""));
-    const nmWrapped=wrapLines(nm, font, 10, pageSize[0]-margin-col[1]);
+  let yLeft=y, yRight=y;
+  const posHdr=opts.logoPos||"right";
+  if(posHdr==="left") yLeft = y - (logoH? (logoH+6) : 0);
+  if(posHdr==="right") yRight = y - (logoH? (logoH+6) : 0);
+  if(posHdr==="top") { yLeft = yRight = y - (logoH? (logoH+12) : 0); }
 
-    page.drawText(String(it.pos),{x:col[0],y,size:10,font});
-    page.drawText(nmWrapped[0],{x:col[1],y,size:10,font});
-    page.drawText((Math.round(it.qty*100)/100).toFixed(2),{x:col[2],y,size:10,font});
-    page.drawText(it.unit,{x:col[3],y,size:10,font});
-    page.drawText((Math.round(it.price*100)/100).toFixed(2),{x:col[4],y,size:10,font});
-    page.drawText((Math.round(it.rate*100)/100).toFixed(2),{x:col[5],y,size:10,font});
-    page.drawText((Math.round(it.lineNet*100)/100).toFixed(2),{x:col[6],y,size:10,font});
-    page.drawText((Math.round(it.lineTax*100)/100).toFixed(2),{x:col[7],y,size:10,font});
-    page.drawText((Math.round(it.lineGross*100)/100).toFixed(2),{x:col[8],y,size:10,font});
-    y-=14;
-    if(nmWrapped.length>1){
-      nmWrapped.slice(1).forEach(t=>{page.drawText(t,{x:col[1],y,size:10,font}); y-=12;});
+  const sellerStartY = (layoutStyle.alignHeaderColumns===false) ? yLeft : Math.min(yLeft, yRight);
+  const metaStartY = Math.min(yRight, sellerStartY);
+  const metaWidth = Math.max(160, Math.min(layoutStyle.metaWidth || 220, pageSize[0]-2*margin-60));
+  const metaPadTop = layoutStyle.metaPadTop ?? 10;
+  const metaPadBottom = layoutStyle.metaPadBottom ?? 8;
+  const metaPadX = layoutStyle.metaPadX ?? 10;
+  const metaHeaderFill = layoutStyle.metaHeaderFill;
+  const metaHeaderColor = layoutStyle.metaHeaderColor || colors.accent;
+  const metaHeaderTextColor = layoutStyle.metaHeaderTextColor || metaHeaderColor;
+  const metaHeaderHeightRaw = layoutStyle.metaHeaderHeight || (metaHeaderFill ? headerFontSize + 8 : metaPadTop);
+  const metaShadowColor = layoutStyle.metaShadow;
+  const metaX = pageSize[0]-margin-metaWidth;
+  const metaRight = metaX + metaWidth - metaPadX;
+
+  const sellerLines=[];
+  addLine(sellerLines, d.seller.name, {size:headerFontSize,font:boldFont,color:layoutStyle.sellerNameColor||colors.primary,step:(layoutStyle.headerFirstStep ?? headerStep+4)});
+  addLine(sellerLines, d.seller.street, {step:headerStep});
+  const sellerCity=[d.seller.zip,d.seller.city].filter(Boolean).join(" ");
+  addLine(sellerLines, sellerCity, {step:headerStep});
+  addLine(sellerLines, d.seller.country, {step:headerStep});
+  if(d.seller.vat) addLine(sellerLines, `USt-IdNr.: ${d.seller.vat}`, {size:10,step:Math.max(headerStep-2,10)});
+  if(d.seller.fc) addLine(sellerLines, `Steuer-Nr.: ${d.seller.fc}`, {size:10,step:Math.max(headerStep-2,10)});
+  if(d.seller.reg) addLine(sellerLines, `HR: ${d.seller.reg}`, {size:10,step:headerStep});
+
+  const metaLines=[];
+  const invoiceLabel=d.header.number?`Rechnung ${d.header.number}`:"Rechnung";
+  addLine(metaLines, invoiceLabel, {size:headerFontSize,font:boldFont,color:metaHeaderTextColor,step:(layoutStyle.headerFirstStep ?? headerStep+4),align:'right'});
+  const metaDate=d.header.date || '—';
+  addLine(metaLines, `Datum: ${metaDate}`, {align:'right',color:layoutStyle.metaTextColor||colors.primary,step:headerStep});
+  if(d.header.dueDate) addLine(metaLines, `Fällig: ${d.header.dueDate}`, {align:'right',color:layoutStyle.metaTextColor||colors.primary,step:headerStep});
+  if(d.header.orderRef) addLine(metaLines, `Bestellref.: ${d.header.orderRef}`, {align:'right',color:layoutStyle.metaTextColor||colors.primary,step:headerStep});
+
+  const sellerHeight=measureLines(sellerLines,headerStep);
+  const metaHeight=measureLines(metaLines,headerStep);
+
+  const metaBoxHeight=metaHeight + metaPadTop + metaPadBottom;
+  const metaBoxBottom=metaStartY - metaBoxHeight;
+  const metaHeaderHeight=Math.max(12, Math.min(metaBoxHeight, metaHeaderHeightRaw));
+  const metaHeaderTextInset = metaHeaderFill ? (layoutStyle.metaHeaderTextInset ?? Math.min(metaHeaderHeight - 4, metaPadTop + headerStep*0.5)) : metaPadTop;
+  const metaTextStart = metaStartY - metaHeaderTextInset;
+
+  if(metaShadowColor){
+    page.drawRectangle({x:metaX+metaWidth+1,y:metaBoxBottom+2,width:2,height:Math.max(0,metaBoxHeight-4),color:metaShadowColor,borderWidth:0});
+  }
+  if(metaHeight || layoutStyle.metaFill || layoutStyle.metaBorder){
+    if(layoutStyle.metaFill || layoutStyle.metaBorder){
+      page.drawRectangle({x:metaX,y:metaBoxBottom,width:metaWidth,height:metaBoxHeight,color:layoutStyle.metaFill||undefined,borderColor:layoutStyle.metaBorder||undefined,borderWidth:layoutStyle.metaBorder?(layoutStyle.metaBorderWidth||1):undefined});
+    }
+    if(metaHeaderFill && metaLines.length){
+      page.drawRectangle({x:metaX,y:metaStartY-metaHeaderHeight,width:metaWidth,height:metaHeaderHeight,color:metaHeaderFill,borderWidth:0});
+      if(layoutStyle.metaBorder){
+        page.drawLine({start:{x:metaX,y:metaStartY}, end:{x:metaX+metaWidth,y:metaStartY}, color:layoutStyle.metaBorder, thickness:layoutStyle.metaBorderWidth||1});
+      }
     }
   }
 
+  if(layoutStyle.sellerAccentColor){
+    const accentHeight=sellerHeight + (layoutStyle.sellerAccentExtra||8);
+    page.drawRectangle({x:margin-4,y:sellerStartY-accentHeight,width:3,height:accentHeight,color:layoutStyle.sellerAccentColor});
+  }
+
+  const sellerY=sellerLines.length? drawLines(sellerLines, margin, sellerStartY, headerStep) : sellerStartY;
+  const metaY=metaLines.length? drawLines(metaLines, metaRight, metaTextStart, headerStep) : metaStartY;
+
+  let headerBottom=Math.min(sellerY, metaY);
+  headerBottom-=layoutStyle.headerAfterGap ?? 6;
+
+  if(layoutStyle.headerDividerColor){
+    page.drawLine({start:{x:margin,y:headerBottom}, end:{x:pageSize[0]-margin,y:headerBottom}, color:layoutStyle.headerDividerColor, thickness:layoutStyle.headerDividerThickness ?? 1});
+    y = headerBottom - (layoutStyle.headerDividerGap ?? 8);
+  }else{
+    y = headerBottom - (layoutStyle.headerDividerGap ?? 10);
+  }
+
+  const buyerTitle=layoutStyle.buyerTitleUppercase?"RECHNUNG AN":"Rechnung an:";
+  const buyerTitleSize=layoutStyle.buyerTitleSize ?? 11;
+  const buyerTitleFont=layoutStyle.buyerTitleUppercase?boldFont:font;
+  const buyerTitleX=layoutStyle.buyerTitleX ?? (layoutStyle.buyerTextX ?? margin);
+  const buyerTitleGap=layoutStyle.buyerTitleGap ?? 12;
+  const buyerTitleY=y;
+  draw(buyerTitle,buyerTitleX,buyerTitleY,buyerTitleSize,layoutStyle.buyerTitleColor||colors.primary,buyerTitleFont);
+  if(layoutStyle.buyerTitleUnderlineColor){
+    const underlineOffset = layoutStyle.buyerTitleUnderlineOffset ?? Math.max(3,buyerTitleGap-4);
+    const underlineY = buyerTitleY - underlineOffset;
+    const underlineWidth = layoutStyle.buyerTitleUnderlineWidth ?? (pageSize[0]-2*margin);
+    const underlineStart = buyerTitleX;
+    const underlineEnd = Math.min(pageSize[0]-margin, underlineStart + underlineWidth);
+    page.drawLine({start:{x:underlineStart,y:underlineY}, end:{x:underlineEnd,y:underlineY}, color:layoutStyle.buyerTitleUnderlineColor, thickness:layoutStyle.buyerTitleUnderlineThickness ?? 0.8});
+  }
+  y -= buyerTitleGap;
+
+  const buyerStartY=y;
+  const buyerLines=[];
+  const buyerGap=layoutStyle.buyerLineGap ?? 12;
+  addLine(buyerLines, d.buyer.name, {size:12,font:boldFont,step:buyerGap});
+  addLine(buyerLines, d.buyer.street, {step:buyerGap});
+  const buyerCity=[d.buyer.zip,d.buyer.city].filter(Boolean).join(" ");
+  addLine(buyerLines, buyerCity, {step:buyerGap});
+  addLine(buyerLines, d.buyer.country, {step:buyerGap});
+  if(d.header.buyerRef) addLine(buyerLines, `Käuferreferenz: ${d.header.buyerRef}`, {size:10,step:buyerGap});
+  if(d.header.supplyDate) addLine(buyerLines, `Leistungsdatum: ${d.header.supplyDate}`, {size:10,step:buyerGap});
+
+  const buyerHeight=measureLines(buyerLines,buyerGap);
+  const buyerPadTop=layoutStyle.buyerPadTop ?? 6;
+  const buyerPadBottom=layoutStyle.buyerPadBottom ?? 8;
+  if((layoutStyle.buyerFill && buyerLines.length) || layoutStyle.buyerBorder){
+    const buyerBoxHeight=buyerHeight + buyerPadTop + buyerPadBottom;
+    const buyerBoxBottom=buyerStartY - (buyerHeight + buyerPadBottom);
+    page.drawRectangle({
+      x:margin-4,
+      y:buyerBoxBottom,
+      width:pageSize[0]-2*margin+8,
+      height:buyerBoxHeight,
+      color:layoutStyle.buyerFill||undefined,
+      borderColor:layoutStyle.buyerBorder||undefined,
+      borderWidth:layoutStyle.buyerBorder?(layoutStyle.buyerBorderWidth||0.8):undefined
+    });
+    if(layoutStyle.buyerAccentLineColor){
+      page.drawRectangle({x:margin-4,y:buyerBoxBottom,width:3,height:buyerBoxHeight,color:layoutStyle.buyerAccentLineColor,borderWidth:0});
+    }
+  }
+
+  const buyerTextX = layoutStyle.buyerTextX ?? margin;
+  const buyerY=buyerLines.length? drawLines(buyerLines, buyerTextX, buyerStartY, buyerGap) : buyerStartY;
+  y = buyerY - (layoutStyle.afterBuyerGap ?? 10);
+
+  if(d.header.notes){
+    draw(layoutStyle.notesTitle || "Hinweise:",margin,y,10,layoutStyle.notesTitleColor||colors.primary,boldFont);
+    y -= layoutStyle.notesTitleGap ?? 10;
+    const noteLines=wrapLines(d.header.notes,font,10,pageSize[0]-2*margin);
+    const notesLineGap=layoutStyle.notesLineGap ?? 12;
+    const notesColor=layoutStyle.notesTextColor || colors.primary;
+    for(const t of noteLines){
+      page.drawText(t,{x:margin,y,size:10,font,color:notesColor});
+      y-=notesLineGap;
+    }
+    y -= layoutStyle.notesAfterGap ?? 6;
+  }
+
+  line();
+
+  const head=["Pos","Bezeichnung","Menge","Einheit","EP netto","USt%","Netto","MwSt","Brutto"];
+  const cols={
+    pos: margin,
+    name: margin+38,
+    qty:  pageSize[0]-margin-240,
+    unit: pageSize[0]-margin-200,
+    ep:   pageSize[0]-margin-160,
+    rate: pageSize[0]-margin-120,
+    net:  pageSize[0]-margin-90,
+    tax:  pageSize[0]-margin-50,
+    gross:pageSize[0]-margin
+  };
+  const tableHeaderFillColor = (layoutStyle.tableHeaderFillColor!==undefined)
+    ? layoutStyle.tableHeaderFillColor
+    : ((opts.tableStyle === 'modern' || opts.tableStyle === 'bordered') ? colors.light : null);
+  const tableHeaderTextColor = layoutStyle.tableHeaderTextColor || colors.primary;
+  const tableHeaderUnderlineColor = (layoutStyle.tableHeaderUnderlineColor!==undefined)
+    ? layoutStyle.tableHeaderUnderlineColor
+    : (opts.tableStyle !== 'simple' ? colors.accent : null);
+  const tableHeaderUnderlineThickness = layoutStyle.tableHeaderUnderlineThickness || 1;
+  const zebraStripeColor = layoutStyle.zebraStripeColor || colors.light;
+  const borderedRowDividerColor = layoutStyle.borderedRowDividerColor || lighten(colors.accent,0.9);
+  function drawTableHeader(){
+    const yy=y;
+    // Table header background
+    if(tableHeaderFillColor){
+      page.drawRectangle({x:margin-5, y:yy-tableFontSize-4, width:pageSize[0]-2*margin+10, height:tableFontSize+8, color:tableHeaderFillColor, borderWidth:0});
+    }
+    page.drawText(head[0],{x:cols.pos,y:yy,size:tableFontSize,font:boldFont,color:tableHeaderTextColor});
+    page.drawText(head[1],{x:cols.name,y:yy,size:tableFontSize,font:boldFont,color:tableHeaderTextColor});
+    rdraw(head[2],cols.qty,yy,tableFontSize,tableHeaderTextColor,boldFont);
+    page.drawText(head[3],{x:cols.unit,y:yy,size:tableFontSize,font:boldFont,color:tableHeaderTextColor});
+    rdraw(head[4],cols.ep,yy,tableFontSize,tableHeaderTextColor,boldFont);
+    rdraw(head[5],cols.rate,yy,tableFontSize,tableHeaderTextColor,boldFont);
+    rdraw(head[6],cols.net,yy,tableFontSize,tableHeaderTextColor,boldFont);
+    rdraw(head[7],cols.tax,yy,tableFontSize,tableHeaderTextColor,boldFont);
+    rdraw(head[8],cols.gross,yy,tableFontSize,tableHeaderTextColor,boldFont);
+    y-= lineHeight;
+    if(tableHeaderUnderlineColor){
+      page.drawLine({start:{x:margin,y:y+2}, end:{x:pageSize[0]-margin,y:y+2}, color:tableHeaderUnderlineColor, thickness:tableHeaderUnderlineThickness});
+    }
+  }
+  if(layout==="letterhead"){ y-=8; }
+  drawTableHeader();
+
+  let pageno=1;
+  let rowIndex = 0;
+  for(const it of d.lines){
+    if(y<margin+120){
+      footer(); page=doc.addPage(pageSize); y=pageSize[1]-margin; header(true); pageno++; drawTableHeader();
+    }
+    
+    // Zebra striping
+    if(opts.tableStyle === 'zebra' && rowIndex % 2 === 1){
+      page.drawRectangle({x:margin-5, y:y-tableFontSize-2, width:pageSize[0]-2*margin+10, height:lineHeight, color:zebraStripeColor, borderWidth:0});
+    }
+    
+    const nm=(it.name+(it.desc?(" – "+it.desc):""));
+    const nmWrapped=wrapLines(nm, font, tableFontSize, cols.qty - cols.name - 10);
+
+    page.drawText(String(it.pos),{x:cols.pos,y,size:tableFontSize,font});
+    page.drawText(nmWrapped[0],{x:cols.name,y,size:tableFontSize,font});
+    rdraw((Math.round(it.qty*100)/100).toFixed(2),cols.qty,y,tableFontSize);
+    page.drawText(it.unit,{x:cols.unit,y,size:tableFontSize,font});
+    rdraw((Math.round(it.price*100)/100).toFixed(2),cols.ep,y,tableFontSize);
+    rdraw((Math.round(it.rate*100)/100).toFixed(2),cols.rate,y,tableFontSize);
+    rdraw((Math.round(it.lineNet*100)/100).toFixed(2),cols.net,y,tableFontSize);
+    rdraw((Math.round(it.lineTax*100)/100).toFixed(2),cols.tax,y,tableFontSize);
+    rdraw((Math.round(it.lineGross*100)/100).toFixed(2),cols.gross,y,tableFontSize);
+    y-= lineHeight;
+    if(nmWrapped.length>1){
+      nmWrapped.slice(1).forEach(t=>{page.drawText(t,{x:cols.name,y,size:tableFontSize,font}); y-= (lineHeight-2);});
+    }
+    
+    // Table borders for bordered style
+    if(opts.tableStyle === 'bordered'){
+      lineH(y+2, borderedRowDividerColor);
+    }
+    rowIndex++;
+  }
+
   y-=6; line();
-  const bxY=y-4; const bxX=pageSize[0]-margin-220;
-  page.drawRectangle({x:bxX,y:bxY-60,width:220,height:60,borderColor:rgb(.8,.8,.8),borderWidth:1});
-  page.drawText(`Zwischensumme netto: ${d.totals.net.toFixed(2)} ${d.header.currency}`,{x:bxX+8,y:bxY-16,size:11,font});
-  page.drawText(`Steuern: ${d.totals.tax.toFixed(2)} ${d.header.currency}`,{x:bxX+8,y:bxY-30,size:11,font});
-  page.drawText(`Gesamt brutto: ${d.totals.gross.toFixed(2)} ${d.header.currency}`,{x:bxX+8,y:bxY-46,size:12,font});
-  y=bxY-76; y-=10;
+  const bxW=240; const bxY=y-4; const bxX=pageSize[0]-margin-bxW;
+  const totalsVariant=layoutStyle.totalsVariant || 'accent';
+  const totalsBorderColor=layoutStyle.totalsBorderColor || colors.light;
+  const totalsFillColor=layoutStyle.totalsFillColor || lighten(colors.accent,0.9);
+  const totalsLabelColor=layoutStyle.totalsLabelColor || colors.primary;
+  const totalsValueColor=layoutStyle.totalsValueColor || colors.primary;
+  const totalsHighlightColor=layoutStyle.totalsHighlightColor || colors.accent;
+  const totalsHeaderLabelColor=layoutStyle.totalsHeaderLabelColor || (totalsVariant==='accent'? white : (layoutStyle.totalsLabelColor || colors.accent));
+  const totalsBodyBottom=bxY-100;
+  const totalsBodyHeight=82;
+  if(totalsVariant==='accent'){
+    page.drawRectangle({x:bxX,y:bxY-18,width:bxW,height:18,color:colors.accent});
+    rdraw("Summen",bxX+bxW-10,bxY-14,10,white,boldFont);
+    page.drawRectangle({x:bxX,y:totalsBodyBottom,width:bxW,height:totalsBodyHeight,borderColor:totalsBorderColor,borderWidth:1});
+  }else if(totalsVariant==='filled'){
+    page.drawRectangle({x:bxX,y:totalsBodyBottom,width:bxW,height:totalsBodyHeight,color:totalsFillColor,borderColor:layoutStyle.totalsBorderColor||colors.accent,borderWidth:1});
+    page.drawText("Summen",{x:bxX+12,y:bxY-14,size:10,font:boldFont,color:totalsHeaderLabelColor});
+  }else{
+    page.drawRectangle({x:bxX,y:totalsBodyBottom,width:bxW,height:totalsBodyHeight,borderColor:totalsBorderColor,borderWidth:1});
+    page.drawText("Summen",{x:bxX+12,y:bxY-14,size:10,font:boldFont,color:totalsHeaderLabelColor});
+  }
+  // Totals content
+  const row=(label,val,yy,bold=false)=>{
+    const valueColor=bold?totalsHighlightColor:totalsValueColor;
+    page.drawText(label,{x:bxX+12,y:yy,size:11,font:bold?boldFont:font,color:totalsLabelColor});
+    rdraw(`${nfmt(val)} ${d.header.currency}`,bxX+bxW-12,yy,11,valueColor,bold?boldFont:font);
+  };
+  row("Zwischensumme netto:", d.totals.net, bxY-34);
+  row("Steuern:", d.totals.tax, bxY-50);
+  row("Gesamt brutto:", d.totals.gross, bxY-68, true);
+  
+  // Optional: tax breakdown table
+  if((d.taxBreakdown||[]).length){
+    const ty = bxY-110;
+    page.drawText("Steueraufschlüsselung:",{x:margin,y:ty,size:11,font:boldFont,color:colors.primary});
+    let yy=ty-12;
+    page.drawText("Kat",{x:margin,y:yy,size:10,font:boldFont});
+    rdraw("Satz %",margin+140,yy,10,colors.primary,boldFont);
+    rdraw("Basis",margin+260,yy,10,colors.primary,boldFont);
+    rdraw("Steuer",margin+380,yy,10,colors.primary,boldFont);
+    yy-=10; lineH(yy, colors.light); yy-=2;
+    for(const tb of d.taxBreakdown){
+      page.drawText(String(tb.cat),{x:margin,y:yy,size:10,font});
+      rdraw(nfmt(tb.rate),margin+140,yy,10);
+      rdraw(nfmt(tb.base),margin+260,yy,10);
+      rdraw(nfmt(tb.tax),margin+380,yy,10);
+      yy-=12;
+    }
+    y = Math.min(y, yy-4);
+  }
+  y = Math.min(y, bxY-110);
 
   if(d.payment.iban){
     page.drawText("Zahlung:",{x:margin,y,size:11,font}); y-=13;
-    page.drawText(`IBAN: ${d.payment.iban}${isValidIBAN(d.payment.iban)?"":" (prüfen)"}`,{x:margin,y,size:10,font}); y-=12;
-    if(d.payment.bic){page.drawText(`BIC: ${d.payment.bic}`,{x:margin,y,size:10,font}); y-=12;}
-    if(d.payment.holder){page.drawText(`Kontoinhaber: ${d.payment.holder}`,{x:margin,y,size:10,font}); y-=12;}
-    if(d.payment.terms){page.drawText(`Zahlungsziel: ${d.payment.terms}`,{x:margin,y,size:10,font}); y-=12;}
+    page.drawText(`IBAN: ${d.payment.iban}${isValidIBAN(d.payment.iban)?"":" (prüfen)"}`,{x:margin,y,size:tableFontSize,font}); y-=12;
+    if(d.payment.bic){page.drawText(`BIC: ${d.payment.bic}`,{x:margin,y,size:tableFontSize,font}); y-=12;}
+    if(d.payment.holder){page.drawText(`Kontoinhaber: ${d.payment.holder}`,{x:margin,y,size:tableFontSize,font}); y-=12;}
+    if(d.payment.terms){page.drawText(`Zahlungsziel: ${d.payment.terms}`,{x:margin,y,size:tableFontSize,font}); y-=12;}
     const epc=epcString(); if(epc){
       const png=await canvasQR(epc,220); const img=await doc.embedPng(png); const dim=img.scale(0.4);
+      if(y - dim.height < margin){ footer(); page=doc.addPage(pageSize); y=pageSize[1]-margin; header(true); }
       page.drawImage(img,{x:pageSize[0]-margin- dim.width,y:y- dim.height,width:dim.width,height:dim.height}); y-=dim.height+10;
     }
   }
 
-  function header(){draw(d.seller.name,margin,y,14); y-=18; draw(`Rechnung ${d.header.number}`,pageSize[0]-margin-200,y,16); y-=18; line();}
+  function header(isFollow=false){
+    let yy=y;
+    if(isFollow && (opts.logoAllPages && logoImg)){
+      yy = drawLogo(page, yy);
+    }
+    const followGap=layoutStyle.followHeaderGap ?? (layout==="compact"?16:18);
+    if(d.seller.name){
+      draw(d.seller.name,margin,yy,Math.max(headerFontSize-2,10),layoutStyle.sellerNameColor||colors.primary,boldFont);
+      yy-=followGap;
+    }
+    const followInvoiceLabel=d.header.number?`Rechnung ${d.header.number}`:"Rechnung";
+    const followRight=Math.max(metaRight, pageSize[0]-margin-160);
+    rdraw(followInvoiceLabel,followRight,yy,Math.max(headerFontSize-1,11),layoutStyle.metaHeaderColor||colors.accent,boldFont);
+    yy-=followGap;
+    y=yy; line();
+  }
   function footer(){
+    const footerColor=rgb(.2,.2,.2);
     page.drawLine({start:{x:margin,y:40},end:{x:pageSize[0]-margin,y:40},color:rgb(.85,.85,.9),thickness:1});
-    page.drawText((d.seller.email||"")+"  "+(d.seller.phone||""),{x:margin,y:26,size:9,font,color:rgb(.2,.2,.2)});
-    page.drawText(`Seite ${pageno}`,{x:pageSize[0]-margin-60,y:26,size:9,font,color:rgb(.2,.2,.2)});
+    const footerParts=[d.seller.email||"", d.seller.phone||"", d.payment?.iban ? `IBAN ${d.payment.iban}` : ""].filter(Boolean);
+    page.drawText(footerParts.join("   "),{x:margin,y:26,size:9,font,color:footerColor});
+    page.drawText(`Seite ${pageno}`,{x:pageSize[0]-margin-60,y:26,size:9,font,color:footerColor});
   }
   footer();
 
@@ -1041,14 +1674,15 @@ $("#btnClearHistory").onclick=()=>{
     
 /* ========= Logo ========= */
 function setLogo(obj){
-  if(!obj){ $("#logoPreview").innerHTML='<span class="small">Kein Logo</span>'; return }
+  if(!obj){ $("#logoPreview").innerHTML='<span class="small">Kein Logo</span>'; logoTemp=null; return }
   $("#logoPreview").innerHTML="";
   const img=document.createElement("img"); img.alt="Logo"; img.src=obj.dataUrl;
   $("#logoPreview").appendChild(img);
+  logoTemp=obj;
 }
 function getLogo(){ return lsGet(LS.k.logo,null) }
 function saveLogo(obj){ lsSet(LS.k.logo,obj) }
-function clearLogo(){ localStorage.removeItem(LS.k.logo); setLogo(null) }
+function clearLogo(){ localStorage.removeItem(LS.k.logo); logoTemp=null; setLogo(null) }
     
 $("#logoFile").addEventListener("change", async (ev)=>{
   const f=ev.target.files?.[0]; if(!f) return;
@@ -1058,7 +1692,7 @@ $("#logoFile").addEventListener("change", async (ev)=>{
   ev.target.value="";
 });
 $("#btnSaveLogo").onclick=()=>{
-  const cur=getLogo();
+  const cur=logoTemp||getLogo();
   if(!cur){ alert("Bitte zuerst eine Bilddatei wählen."); return }
   saveLogo(cur); alert("Logo als Standard gespeichert (lokal).");
 };
