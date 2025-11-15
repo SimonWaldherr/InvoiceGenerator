@@ -8,36 +8,43 @@
 <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
 <style>
-:root{--bg:#f6f7f9;--card:#fff;--ink:#1f2328;--muted:#6b7280;--accent:#0d6efd;--line:#e5e7eb}
+:root{--bg:#f5f5f7;--card:#ffffff;--ink:#111827;--muted:#6b7280;--accent:#2563eb;--line:#e5e7eb;--accent-soft:#e5edff;--shadow-soft:0 8px 20px rgba(15,23,42,.06)}
 *{box-sizing:border-box}
-html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif}
-.container{max-width:1180px;margin:24px auto;padding:0 16px}
-h1{font-size:22px;margin:0 0 16px}
+html,body{margin:0;padding:0;background:radial-gradient(circle at top,#eef2ff 0,#f5f5f7 42%,#f9fafb 100%);color:var(--ink);font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+.container{max-width:1200px;margin:24px auto 40px;padding:0 16px}
+h1{font-size:24px;margin:0 0 10px;letter-spacing:.01em}
 .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:12px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px}
-label{display:block;font-weight:600;margin:.2rem 0 .25rem}
-input,select,textarea{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:#fff}
+.card{background:var(--card);border:1px solid rgba(148,163,184,.35);border-radius:14px;padding:14px 16px;box-shadow:var(--shadow-soft)}
+label{display:block;font-weight:600;margin:.25rem 0 .2rem;font-size:12px;letter-spacing:.02em;text-transform:uppercase;color:var(--muted)}
+input,select,textarea{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:#fff;font:inherit;color:inherit;transition:border-color .15s ease,box-shadow .15s ease,background-color .15s ease}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 1px rgba(37,99,235,.35)}
 .small{font-size:12px;color:var(--muted)}
 .row{display:flex;gap:10px;align-items:center}
-button{appearance:none;border:0;border-radius:10px;padding:10px 14px;background:var(--accent);color:#fff;font-weight:700;cursor:pointer}
-button.ghost{background:#eef3ff;color:#0b57d0}
+button{appearance:none;border:0;border-radius:999px;padding:9px 14px 10px;background:var(--accent);color:#fff;font-weight:600;cursor:pointer;font-size:13px;display:inline-flex;align-items:center;gap:6px;box-shadow:0 8px 18px rgba(37,99,235,.25);transition:transform .12s ease,box-shadow .12s ease,background-color .12s ease,filter .12s ease}
+button:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 10px 26px rgba(15,23,42,.2);filter:brightness(1.02)}
+button:active:not(:disabled){transform:translateY(0);box-shadow:0 4px 14px rgba(15,23,42,.2);filter:brightness(.96)}
+button.ghost{background:var(--accent-soft);color:#1d4ed8;box-shadow:none}
 button.red{background:#e11d48}
 button.gray{background:#6b7280}
 button.green{background:#16a34a}
 button.orange{background:#d97706}
 button:disabled{opacity:.6;cursor:not-allowed}
-.table{width:100%;border-collapse:collapse}
-.table th,.table td{border:1px solid var(--line);padding:8px;vertical-align:top}
-.table th{background:#f2f4f7;text-align:left}
+.table{width:100%;border-collapse:separate;border-spacing:0 2px}
+.table th,.table td{padding:8px 9px;vertical-align:top;font-size:12px}
+.table thead th{background:#eef2ff;border-bottom:1px solid #c7d2fe;text-align:left;font-weight:600;color:#1e293b;position:sticky;top:0;z-index:1}
+.table tbody tr{background:#fff;border-radius:8px;box-shadow:0 1px 0 rgba(15,23,42,.04)}
+.table tbody tr:nth-child(odd){background:#f9fafb}
+.table tbody td:first-child{border-top-left-radius:8px;border-bottom-left-radius:8px}
+.table tbody td:last-child{border-top-right-radius:8px;border-bottom-right-radius:8px}
 .actions{display:flex;flex-wrap:wrap;gap:10px}
-.badge{display:inline-flex;align-items:center;gap:6px;background:#eef2ff;color:#1e40af;border-radius:999px;padding:6px 10px;font-size:12px}
+.badge{display:inline-flex;align-items:center;gap:6px;background:#eef2ff;color:#1e40af;border-radius:999px;padding:6px 10px;font-size:11px;font-weight:500}
 hr{border:0;border-top:1px solid var(--line);margin:12px 0}
 .kv{display:grid;grid-template-columns:180px 1fr;gap:8px;align-items:center}
 .flex{display:flex;gap:12px}
 .flexcol{display:flex;flex-direction:column;gap:8px}
 .right{margin-left:auto}
 .totalbox{background:#0b1220;color:#e6edf3;border-radius:10px;padding:12px}
-.notice{background:#f0f9ff;border:1px solid #c7e1ff;color:#043a6b;border-radius:10px;padding:10px}
+.notice{background:linear-gradient(135deg,#eff6ff,#e0f2fe);border:1px solid #bfdbfe;color:#043a6b;border-radius:12px;padding:12px 14px}
 a{color:#0d6efd;text-decoration:none}
 a:hover{text-decoration:underline}
 .logoBox{display:flex;gap:12px;align-items:center}
@@ -64,7 +71,7 @@ a:hover{text-decoration:underline}
   <div class="grid">
     <!-- Notices -->
     <div class="card notice" style="grid-column: span 12;">
-      <strong>Hinweis – 100% lokal & offline:</strong>
+      <strong style="display:block;margin-bottom:4px;font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:#0f172a">Hinweis – 100% lokal & offline:</strong>
       <ul class="small" style="margin:6px 0 0 18px">
         <li>Keine Server – alle Daten, Entwürfe, Kontakte, Logo & Verlauf werden <em>nur im Browser-Speicher (localStorage)</em> gehalten.</li>
         <li>Pros: Datenschutz, offline nutzbar (PWA), sofortig. Cons: Daten sind nur auf <em>diesem</em> Gerät/Browser; bei Löschen des Browser-Speichers sind sie weg (Backup-Funktion vorhanden).</li>
@@ -211,6 +218,8 @@ a:hover{text-decoration:underline}
             <option value="compact">Kompakt</option>
             <option value="letterhead">Briefkopf</option>
             <option value="modern">Modern</option>
+            <option value="professional">Professional</option>
+            <option value="sleek">Sleek</option>
             <option value="minimal">Minimal</option>
           </select>
           <label>Farbschema</label>
@@ -321,6 +330,17 @@ a:hover{text-decoration:underline}
         <summary>XML</summary>
         <pre id="xmlOut" style="white-space:pre-wrap;overflow:auto;max-height:340px;background:#0f172a;color:#e6edf3;padding:10px;border-radius:8px"></pre>
       </details>
+      <div style="margin-top:12px" class="flex" id="pdfPreviewRow">
+        <div style="flex:1 1 55%;min-height:420px;border-radius:12px;overflow:hidden;border:1px solid rgba(148,163,184,.45);background:#0f172a0d;display:flex;align-items:center;justify-content:center;position:relative">
+          <iframe id="pdfPreview" title="PDF Vorschau" style="width:100%;height:100%;border:0;background:#f9fafb" sandbox="allow-same-origin allow-scripts"></iframe>
+          <span id="pdfPreviewPlaceholder" class="small" style="position:absolute;inset:auto 0 16px 0;text-align:center;color:#6b7280">Noch kein PDF generiert – nach dem Erzeugen wird hier eine Vorschau angezeigt.</span>
+        </div>
+        <div style="flex:0 0 260px" class="flexcol small">
+          <strong style="font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:#0f172a">Vorschau</strong>
+          <span>Die Vorschau zeigt das zuletzt generierte PDF direkt im Browser. Für einen finalen Check bitte dennoch die Datei im nativen PDF-Viewer öffnen.</span>
+          <span>Hinweis: In manchen Browsern (insbesondere mit strengen Erweiterungen) kann die Inline-Anzeige eingeschränkt sein. Das Download-Icon des Viewers funktioniert wie gewohnt.</span>
+        </div>
+      </div>
     </div>
 
     <!-- Storage management -->
@@ -336,8 +356,8 @@ a:hover{text-decoration:underline}
 
     <!-- History list -->
     <div class="card" style="grid-column: span 6;">
-      <div class="row" style="justify-content:space-between;align-items:center">
-        <strong>Historie (lokal)</strong>
+      <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:4px">
+        <strong style="font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:#0f172a">Historie (lokal)</strong>
         <div class="row">
           <button id="btnClearHistory" class="red">Historie leeren</button>
         </div>
@@ -1036,6 +1056,72 @@ async function buildPDF(d, xmlText){
       tableHeaderTextColor:colors.primary,
       tableHeaderUnderlineColor:colors.accent
     },
+    professional:{
+      headerGap:16,
+      metaWidth:240,
+      metaFill:white,
+      metaBorder:lighten(colors.accent,0.7),
+      metaHeaderFill:rgb(0.06,0.35,0.6),
+      metaHeaderTextColor:white,
+      metaPadTop:18,
+      metaPadBottom:12,
+      metaPadX:14,
+      alignHeaderColumns:false,
+      sellerNameColor:rgb(0.08,0.12,0.2),
+      buyerFill:lighten(colors.accent,0.96),
+      buyerBorder:lighten(colors.accent,0.85),
+      buyerBorderWidth:0.8,
+      buyerTitleColor:colors.accent,
+      buyerTitleUppercase:false,
+      buyerLineGap:12,
+      buyerPadTop:10,
+      buyerPadBottom:10,
+      afterBuyerGap:14,
+      headerDividerColor:lighten(colors.accent,0.75),
+      headerDividerThickness:1.2,
+      sectionDividerPre:12,
+      sectionDividerPost:10,
+      zebraStripeColor:lighten(colors.accent,0.94),
+      tableHeaderFillColor:lighten(colors.accent,0.9),
+      tableHeaderTextColor:colors.primary,
+      tableHeaderUnderlineColor:lighten(colors.accent,0.6),
+      totalsVariant:'filled',
+      totalsLabelColor:colors.primary,
+      totalsHighlightColor:colors.accent,
+      sellerAccentColor:colors.accent
+    },
+    sleek:{
+      headerGap:10,
+      metaWidth:200,
+      metaFill:white,
+      metaBorder:colors.light,
+      metaHeaderFill:lighten(colors.accent,0.9),
+      metaHeaderTextColor:colors.primary,
+      metaPadTop:10,
+      metaPadBottom:8,
+      metaPadX:10,
+      alignHeaderColumns:true,
+      sellerNameColor:colors.primary,
+      buyerFill:null,
+      buyerBorder:colors.light,
+      buyerBorderWidth:0.6,
+      buyerTitleColor:colors.primary,
+      buyerTitleUppercase:false,
+      buyerLineGap:10,
+      buyerPadTop:8,
+      buyerPadBottom:8,
+      afterBuyerGap:10,
+      headerDividerColor:colors.light,
+      headerDividerThickness:0.8,
+      sectionDividerPre:8,
+      sectionDividerPost:6,
+      zebraStripeColor:lighten(colors.accent,0.97),
+      tableHeaderFillColor:lighten(colors.accent,0.98),
+      tableHeaderTextColor:colors.primary,
+      tableHeaderUnderlineColor:colors.light,
+      totalsVariant:'outlined',
+      totalsLabelColor:colors.primary
+    },
     minimal:{
       headerGap:12,
       metaWidth:210,
@@ -1210,8 +1296,11 @@ async function buildPDF(d, xmlText){
   const sellerY=sellerLines.length? drawLines(sellerLines, margin, sellerStartY, headerStep) : sellerStartY;
   const metaY=metaLines.length? drawLines(metaLines, metaRight, metaTextStart, headerStep) : metaStartY;
 
-  let headerBottom=Math.min(sellerY, metaY);
-  headerBottom-=layoutStyle.headerAfterGap ?? 6;
+  // headerBottom muss unter BEIDEN Boxen sein (Seller-Text UND Meta-Box)
+  const sellerBottom = sellerY;
+  const metaBoxActualBottom = metaBoxBottom;
+  let headerBottom = Math.min(sellerBottom, metaBoxActualBottom);
+  headerBottom -= (layoutStyle.headerAfterGap ?? 6);
 
   if(layoutStyle.headerDividerColor){
     page.drawLine({start:{x:margin,y:headerBottom}, end:{x:pageSize[0]-margin,y:headerBottom}, color:layoutStyle.headerDividerColor, thickness:layoutStyle.headerDividerThickness ?? 1});
@@ -1251,9 +1340,10 @@ async function buildPDF(d, xmlText){
   const buyerHeight=measureLines(buyerLines,buyerGap);
   const buyerPadTop=layoutStyle.buyerPadTop ?? 6;
   const buyerPadBottom=layoutStyle.buyerPadBottom ?? 8;
+  const buyerBoxHeight=buyerHeight + buyerPadTop + buyerPadBottom;
+  const buyerBoxBottom=buyerStartY - buyerBoxHeight;
+  
   if((layoutStyle.buyerFill && buyerLines.length) || layoutStyle.buyerBorder){
-    const buyerBoxHeight=buyerHeight + buyerPadTop + buyerPadBottom;
-    const buyerBoxBottom=buyerStartY - (buyerHeight + buyerPadBottom);
     page.drawRectangle({
       x:margin-4,
       y:buyerBoxBottom,
@@ -1269,35 +1359,41 @@ async function buildPDF(d, xmlText){
   }
 
   const buyerTextX = layoutStyle.buyerTextX ?? margin;
-  const buyerY=buyerLines.length? drawLines(buyerLines, buyerTextX, buyerStartY, buyerGap) : buyerStartY;
-  y = buyerY - (layoutStyle.afterBuyerGap ?? 10);
+  const buyerTextStartY = buyerStartY - buyerPadTop;
+  const buyerY=buyerLines.length? drawLines(buyerLines, buyerTextX, buyerTextStartY, buyerGap) : buyerStartY;
+  
+  // KRITISCH: y MUSS unter der Box sein, nicht nur unter dem Text!
+  y = buyerBoxBottom - (layoutStyle.afterBuyerGap ?? 10);
 
   if(d.header.notes){
-    draw(layoutStyle.notesTitle || "Hinweise:",margin,y,10,layoutStyle.notesTitleColor||colors.primary,boldFont);
-    y -= layoutStyle.notesTitleGap ?? 10;
+    // Hinweise: sauberer Abstand zur Käufer-Box
+    y -= 6; // extra spacing vor Hinweise-Titel
+    draw(layoutStyle.notesTitle || "Hinweise:",margin,y,10.5,layoutStyle.notesTitleColor||colors.primary,boldFont);
+    y -= 14; // Abstand zwischen Titel und erstem Text
     const noteLines=wrapLines(d.header.notes,font,10,pageSize[0]-2*margin);
-    const notesLineGap=layoutStyle.notesLineGap ?? 12;
+    const notesLineGap=14;
     const notesColor=layoutStyle.notesTextColor || colors.primary;
     for(const t of noteLines){
       page.drawText(t,{x:margin,y,size:10,font,color:notesColor});
-      y-=notesLineGap;
+      y -= notesLineGap;
     }
-    y -= layoutStyle.notesAfterGap ?? 6;
+    y -= 8; // Abstand nach den Hinweisen
   }
 
   line();
 
   const head=["Pos","Bezeichnung","Menge","Einheit","EP netto","USt%","Netto","MwSt","Brutto"];
+  // Spalten-Layout mit ausreichend Abstand zwischen den Spalten
   const cols={
-    pos: margin,
-    name: margin+38,
-    qty:  pageSize[0]-margin-240,
-    unit: pageSize[0]-margin-200,
-    ep:   pageSize[0]-margin-160,
-    rate: pageSize[0]-margin-120,
-    net:  pageSize[0]-margin-90,
-    tax:  pageSize[0]-margin-50,
-    gross:pageSize[0]-margin
+    pos:   margin,           // Position-Nr (links)
+    name:  margin + 42,      // Bezeichnung (breite Spalte)
+    qty:   pageSize[0] - margin - 280,  // Menge (rechtsbündig)
+    unit:  pageSize[0] - margin - 230,  // Einheit (linksbündig, mehr Platz)
+    ep:    pageSize[0] - margin - 180,  // Einzelpreis (rechtsbündig, mehr Platz)
+    rate:  pageSize[0] - margin - 130,  // USt% (rechtsbündig)
+    net:   pageSize[0] - margin - 95,   // Netto (rechtsbündig)
+    tax:   pageSize[0] - margin - 55,   // MwSt (rechtsbündig)
+    gross: pageSize[0] - margin         // Brutto (rechtsbündig)
   };
   const tableHeaderFillColor = (layoutStyle.tableHeaderFillColor!==undefined)
     ? layoutStyle.tableHeaderFillColor
@@ -1335,18 +1431,20 @@ async function buildPDF(d, xmlText){
   let pageno=1;
   let rowIndex = 0;
   for(const it of d.lines){
-    if(y<margin+120){
+    if(y<margin+140){
       footer(); page=doc.addPage(pageSize); y=pageSize[1]-margin; header(true); pageno++; drawTableHeader();
     }
     
     // Zebra striping
     if(opts.tableStyle === 'zebra' && rowIndex % 2 === 1){
-      page.drawRectangle({x:margin-5, y:y-tableFontSize-2, width:pageSize[0]-2*margin+10, height:lineHeight, color:zebraStripeColor, borderWidth:0});
+      page.drawRectangle({x:margin-5, y:y-tableFontSize-2, width:pageSize[0]-2*margin+10, height:lineHeight+2, color:zebraStripeColor, borderWidth:0});
     }
     
     const nm=(it.name+(it.desc?(" – "+it.desc):""));
-    const nmWrapped=wrapLines(nm, font, tableFontSize, cols.qty - cols.name - 10);
+    // Wrap-Breite: von name-Spalte bis kurz vor qty-Spalte
+    const nmWrapped=wrapLines(nm, font, tableFontSize, cols.qty - cols.name - 12);
 
+    // Erste Zeile der Position zeichnen
     page.drawText(String(it.pos),{x:cols.pos,y,size:tableFontSize,font});
     page.drawText(nmWrapped[0],{x:cols.name,y,size:tableFontSize,font});
     rdraw((Math.round(it.qty*100)/100).toFixed(2),cols.qty,y,tableFontSize);
@@ -1356,20 +1454,32 @@ async function buildPDF(d, xmlText){
     rdraw((Math.round(it.lineNet*100)/100).toFixed(2),cols.net,y,tableFontSize);
     rdraw((Math.round(it.lineTax*100)/100).toFixed(2),cols.tax,y,tableFontSize);
     rdraw((Math.round(it.lineGross*100)/100).toFixed(2),cols.gross,y,tableFontSize);
-    y-= lineHeight;
+    
+    // Y nach unten bewegen (erste Zeile)
+    y -= lineHeight;
+    
+    // Folgezeilen (falls mehrzeilige Bezeichnung)
     if(nmWrapped.length>1){
-      nmWrapped.slice(1).forEach(t=>{page.drawText(t,{x:cols.name,y,size:tableFontSize,font}); y-= (lineHeight-2);});
+      for(let i=1; i<nmWrapped.length; i++){
+        if(y < margin+140){
+          // neue Seite erzwingen
+          footer(); page=doc.addPage(pageSize); y=pageSize[1]-margin; header(true); pageno++; drawTableHeader();
+        }
+        page.drawText(nmWrapped[i],{x:cols.name,y,size:tableFontSize,font});
+        y -= lineHeight;
+      }
     }
+    
+    // Extra Abstand nach jeder Position
+    y -= 2;
     
     // Table borders for bordered style
     if(opts.tableStyle === 'bordered'){
       lineH(y+2, borderedRowDividerColor);
     }
     rowIndex++;
-  }
-
-  y-=6; line();
-  const bxW=240; const bxY=y-4; const bxX=pageSize[0]-margin-bxW;
+  }  y-=10; line();
+  const bxW=240; const bxY=y-6; const bxX=pageSize[0]-margin-bxW;
   const totalsVariant=layoutStyle.totalsVariant || 'accent';
   const totalsBorderColor=layoutStyle.totalsBorderColor || colors.light;
   const totalsFillColor=layoutStyle.totalsFillColor || lighten(colors.accent,0.9);
@@ -1402,34 +1512,35 @@ async function buildPDF(d, xmlText){
   
   // Optional: tax breakdown table
   if((d.taxBreakdown||[]).length){
-    const ty = bxY-110;
-    page.drawText("Steueraufschlüsselung:",{x:margin,y:ty,size:11,font:boldFont,color:colors.primary});
-    let yy=ty-12;
-    page.drawText("Kat",{x:margin,y:yy,size:10,font:boldFont});
-    rdraw("Satz %",margin+140,yy,10,colors.primary,boldFont);
-    rdraw("Basis",margin+260,yy,10,colors.primary,boldFont);
-    rdraw("Steuer",margin+380,yy,10,colors.primary,boldFont);
-    yy-=10; lineH(yy, colors.light); yy-=2;
+    const ty = bxY-116;
+    page.drawText("Steueraufschlüsselung:",{x:margin,y:ty,size:10.5,font:boldFont,color:colors.primary});
+    let yy=ty-14;
+    page.drawText("Kat",{x:margin,y:yy,size:9.5,font:boldFont});
+    rdraw("Satz %",margin+140,yy,9.5,colors.primary,boldFont);
+    rdraw("Basis",margin+260,yy,9.5,colors.primary,boldFont);
+    rdraw("Steuer",margin+380,yy,9.5,colors.primary,boldFont);
+    yy-=11; lineH(yy, colors.light); yy-=3;
     for(const tb of d.taxBreakdown){
-      page.drawText(String(tb.cat),{x:margin,y:yy,size:10,font});
-      rdraw(nfmt(tb.rate),margin+140,yy,10);
-      rdraw(nfmt(tb.base),margin+260,yy,10);
-      rdraw(nfmt(tb.tax),margin+380,yy,10);
-      yy-=12;
+      page.drawText(String(tb.cat),{x:margin,y:yy,size:9.5,font});
+      rdraw(nfmt(tb.rate),margin+140,yy,9.5);
+      rdraw(nfmt(tb.base),margin+260,yy,9.5);
+      rdraw(nfmt(tb.tax),margin+380,yy,9.5);
+      yy-=13;
     }
-    y = Math.min(y, yy-4);
+    y = Math.min(y, yy-6);
   }
-  y = Math.min(y, bxY-110);
+  y = Math.min(y, bxY-116);
 
   if(d.payment.iban){
-    page.drawText("Zahlung:",{x:margin,y,size:11,font}); y-=13;
-    page.drawText(`IBAN: ${d.payment.iban}${isValidIBAN(d.payment.iban)?"":" (prüfen)"}`,{x:margin,y,size:tableFontSize,font}); y-=12;
-    if(d.payment.bic){page.drawText(`BIC: ${d.payment.bic}`,{x:margin,y,size:tableFontSize,font}); y-=12;}
-    if(d.payment.holder){page.drawText(`Kontoinhaber: ${d.payment.holder}`,{x:margin,y,size:tableFontSize,font}); y-=12;}
-    if(d.payment.terms){page.drawText(`Zahlungsziel: ${d.payment.terms}`,{x:margin,y,size:tableFontSize,font}); y-=12;}
+    y -= 4;
+    page.drawText("Zahlung:",{x:margin,y,size:10.5,font:boldFont}); y-=14;
+    page.drawText(`IBAN: ${d.payment.iban}${isValidIBAN(d.payment.iban)?"":" (prüfen)"}`,{x:margin,y,size:9.5,font}); y-=13;
+    if(d.payment.bic){page.drawText(`BIC: ${d.payment.bic}`,{x:margin,y,size:9.5,font}); y-=13;}
+    if(d.payment.holder){page.drawText(`Kontoinhaber: ${d.payment.holder}`,{x:margin,y,size:9.5,font}); y-=13;}
+    if(d.payment.terms){page.drawText(`Zahlungsziel: ${d.payment.terms}`,{x:margin,y,size:9.5,font}); y-=13;}
     const epc=epcString(); if(epc){
       const png=await canvasQR(epc,220); const img=await doc.embedPng(png); const dim=img.scale(0.4);
-      if(y - dim.height < margin){ footer(); page=doc.addPage(pageSize); y=pageSize[1]-margin; header(true); }
+      if(y - dim.height < margin+10){ footer(); page=doc.addPage(pageSize); y=pageSize[1]-margin; header(true); }
       page.drawImage(img,{x:pageSize[0]-margin- dim.width,y:y- dim.height,width:dim.width,height:dim.height}); y-=dim.height+10;
     }
   }
@@ -1514,7 +1625,13 @@ $("#genPdf").onclick=async()=>{
   if(errs.length){alert("Fehlende/ungültige Felder:\n- "+errs.join("\n- "));return}
   const xml=buildCII(data);
   const pdfBlob=await buildPDF(data, xml);
-  const a=document.createElement("a"); a.href=URL.createObjectURL(pdfBlob); a.download=`${data.header.number||"invoice"}.pdf`; a.click();
+  const url=URL.createObjectURL(pdfBlob);
+  // Download wie bisher auslösen
+  const a=document.createElement("a"); a.href=url; a.download=`${data.header.number||"invoice"}.pdf`; a.click();
+  // Vorschau aktualisieren (iframe)
+  const iframe=$("#pdfPreview"); const ph=$("#pdfPreviewPlaceholder");
+  if(iframe){ iframe.src=url; }
+  if(ph){ ph.style.display="none"; }
   $("#xmlOut").textContent=xml;
   
   // Historie speichern
