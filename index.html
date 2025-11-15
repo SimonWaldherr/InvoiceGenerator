@@ -11,7 +11,7 @@
 :root{--bg:#f6f7f9;--card:#fff;--ink:#1f2328;--muted:#6b7280;--accent:#0d6efd;--line:#e5e7eb}
 *{box-sizing:border-box}
 html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif}
-.container{max-width:1120px;margin:24px auto;padding:0 16px}
+.container{max-width:1180px;margin:24px auto;padding:0 16px}
 h1{font-size:22px;margin:0 0 16px}
 .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:12px}
 .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px}
@@ -23,6 +23,8 @@ button{appearance:none;border:0;border-radius:10px;padding:10px 14px;background:
 button.ghost{background:#eef3ff;color:#0b57d0}
 button.red{background:#e11d48}
 button.gray{background:#6b7280}
+button.green{background:#16a34a}
+button.orange{background:#d97706}
 button:disabled{opacity:.6;cursor:not-allowed}
 .table{width:100%;border-collapse:collapse}
 .table th,.table td{border:1px solid var(--line);padding:8px;vertical-align:top}
@@ -35,7 +37,16 @@ hr{border:0;border-top:1px solid var(--line);margin:12px 0}
 .flexcol{display:flex;flex-direction:column;gap:8px}
 .right{margin-left:auto}
 .totalbox{background:#0b1220;color:#e6edf3;border-radius:10px;padding:12px}
-@media (max-width:900px){.grid{grid-template-columns:repeat(6,1fr)}}
+.notice{background:#f0f9ff;border:1px solid #c7e1ff;color:#043a6b;border-radius:10px;padding:10px}
+a{color:#0d6efd;text-decoration:none}
+a:hover{text-decoration:underline}
+.logoBox{display:flex;gap:12px;align-items:center}
+.logoPreview{width:120px;height:120px;border:1px dashed var(--line);border-radius:10px;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.logoPreview img{max-width:100%;max-height:100%;display:block}
+.history{max-height:260px;overflow:auto;border:1px solid var(--line);border-radius:8px}
+.history table{width:100%;border-collapse:collapse}
+.history th,.history td{padding:8px;border-bottom:1px solid var(--line);font-size:13px}
+@media (max-width:980px){.grid{grid-template-columns:repeat(6,1fr)}}
 @media (max-width:640px){.grid{grid-template-columns:repeat(2,1fr)}.kv{grid-template-columns:1fr}}
 </style>
 </head>
@@ -46,18 +57,33 @@ hr{border:0;border-top:1px solid var(--line);margin:12px 0}
     <div class="row">
       <span class="badge">PDF/A-3b</span>
       <span class="badge">XML eingebettet</span>
+      <a class="badge" href="https://github.com/SimonWaldherr/InvoiceGenerator" target="_blank" rel="noreferrer">GitHub-Repo</a>
     </div>
   </div>
 
   <div class="grid">
+    <!-- Notices -->
+    <div class="card notice" style="grid-column: span 12;">
+      <strong>Hinweis – 100% lokal & offline:</strong>
+      <ul class="small" style="margin:6px 0 0 18px">
+        <li>Keine Server – alle Daten, Entwürfe, Kontakte, Logo & Verlauf werden <em>nur im Browser-Speicher (localStorage)</em> gehalten.</li>
+        <li>Pros: Datenschutz, offline nutzbar (PWA), sofortig. Cons: Daten sind nur auf <em>diesem</em> Gerät/Browser; bei Löschen des Browser-Speichers sind sie weg (Backup-Funktion vorhanden).</li>
+        <li>Export/Import: Einzel-Rechnung als JSON/CSV sowie kompletter Browser-Speicher als Backup (JSON) – beides lokal.</li>
+      </ul>
+    </div>
+
     <div class="card" style="grid-column: span 12;">
       <div class="actions">
         <button id="btnSample" class="gray">Beispieldaten</button>
         <button id="btnReset" class="red">Alles leeren</button>
+        <button id="btnSaveHistory" class="green">In Historie speichern</button>
+        <button id="btnNextNr" class="orange">Nächste Nr.</button>
         <span class="small">Pflichtfelder mit * gekennzeichnet</span>
+        <span class="right small">Standard-Einheitenpräfix: <code id="unitDefaultLbl">C62</code></span>
       </div>
     </div>
 
+    <!-- Header / Invoice meta -->
     <div class="card" style="grid-column: span 6;">
       <div class="kv">
         <label>Profil</label>
@@ -69,7 +95,7 @@ hr{border:0;border-top:1px solid var(--line);margin:12px 0}
           <option value="MINIMUM">MINIMUM</option>
         </select>
         <label>Rechnungsnummer*</label>
-        <input id="invNumber" placeholder="RE-2025-0001"/>
+        <div class="row"><input id="invNumber" placeholder="RE-2025-0001"/><button id="btnRememberNr" class="ghost">Merken</button></div>
         <label>Rechnungsdatum*</label>
         <input id="invDate" type="date"/>
         <label>Fälligkeitsdatum</label>
@@ -89,6 +115,7 @@ hr{border:0;border-top:1px solid var(--line);margin:12px 0}
       </div>
     </div>
 
+    <!-- Seller -->
     <div class="card" style="grid-column: span 6;">
       <div class="kv">
         <label>Verkäufer* – Name</label><input id="sellerName"/>
@@ -102,8 +129,15 @@ hr{border:0;border-top:1px solid var(--line);margin:12px 0}
         <label>Verkäufer – E-Mail</label><input id="sellerEmail"/>
         <label>Verkäufer – Telefon</label><input id="sellerPhone"/>
       </div>
+      <hr/>
+      <div class="row">
+        <button id="btnSaveDefaults" class="ghost">Als Standard speichern</button>
+        <button id="btnLoadDefaults" class="ghost">Standard laden</button>
+        <button id="btnClearDefaults" class="red">Standard löschen</button>
+      </div>
     </div>
 
+    <!-- Buyer + Address book -->
     <div class="card" style="grid-column: span 6;">
       <div class="kv">
         <label>Käufer* – Name</label><input id="buyerName"/>
@@ -116,8 +150,16 @@ hr{border:0;border-top:1px solid var(--line);margin:12px 0}
         <label>Käufer – E-Mail</label><input id="buyerEmail"/>
         <label>Käufer – Telefon</label><input id="buyerPhone"/>
       </div>
+      <hr/>
+      <div class="row">
+        <select id="contactSelect" title="Kontakte" style="flex:1"><option value="">— Kontakt auswählen —</option></select>
+        <button id="btnLoadContact" class="ghost">Laden</button>
+        <button id="btnSaveContact" class="ghost">Speichern</button>
+        <button id="btnDelContact" class="red">Löschen</button>
+      </div>
     </div>
 
+    <!-- Payment + QR -->
     <div class="card" style="grid-column: span 6;">
       <div class="kv">
         <label>Zahlungsart</label>
@@ -143,6 +185,22 @@ hr{border:0;border-top:1px solid var(--line);margin:12px 0}
       </div>
     </div>
 
+    <!-- Logo -->
+    <div class="card" style="grid-column: span 6;">
+      <div class="logoBox">
+        <div class="logoPreview" id="logoPreview"><span class="small">Kein Logo</span></div>
+        <div class="flexcol">
+          <input type="file" id="logoFile" accept="image/png,image/jpeg"/>
+          <div class="row">
+            <button id="btnSaveLogo" class="ghost">Logo speichern (Standard)</button>
+            <button id="btnClearLogo" class="red">Logo entfernen</button>
+          </div>
+          <span class="small">Das Logo wird in PDFs oben rechts gedruckt und lokal gespeichert.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Items -->
     <div class="card" style="grid-column: span 12;">
       <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:8px">
         <div class="row" style="gap:8px;align-items:center">
@@ -183,12 +241,14 @@ hr{border:0;border-top:1px solid var(--line);margin:12px 0}
       </div>
     </div>
 
+    <!-- Output / import-export -->
     <div class="card" style="grid-column: span 12;">
       <div class="actions">
         <button id="genXml" class="ghost">XML anzeigen/speichern</button>
         <button id="genPdf">PDF+A-3 mit eingebettetem XML erzeugen</button>
         <button id="dlJson" class="ghost">JSON Export</button>
         <button id="dlCsv" class="ghost">CSV Export</button>
+        <label class="small right">JSON Import <input type="file" id="uploadJson" accept="application/json"/></label>
       </div>
       <hr/>
       <details>
@@ -196,23 +256,65 @@ hr{border:0;border-top:1px solid var(--line);margin:12px 0}
         <pre id="xmlOut" style="white-space:pre-wrap;overflow:auto;max-height:340px;background:#0f172a;color:#e6edf3;padding:10px;border-radius:8px"></pre>
       </details>
     </div>
+
+    <!-- Storage management -->
+    <div class="card" style="grid-column: span 6;">
+      <strong>Backup des lokalen Speichers</strong>
+      <p class="small">Sichert/stellt <em>Defaults, Kontakte, Historie & Logo</em> wieder her – alles bleibt lokal.</p>
+      <div class="row">
+        <button id="btnBackup" class="ghost">Backup exportieren</button>
+        <label class="small">Backup importieren <input type="file" id="uploadBackup" accept="application/json"/></label>
+        <button id="btnWipeAll" class="red">Alles lokal löschen</button>
+      </div>
+    </div>
+
+    <!-- History list -->
+    <div class="card" style="grid-column: span 6;">
+      <div class="row" style="justify-content:space-between;align-items:center">
+        <strong>Historie (lokal)</strong>
+        <div class="row">
+          <button id="btnClearHistory" class="red">Historie leeren</button>
+        </div>
+      </div>
+      <div class="history" id="historyBox">
+        <table>
+          <thead><tr><th>Nr.</th><th>Datum</th><th>Kunde</th><th>Brutto</th><th>Aktionen</th></tr></thead>
+          <tbody id="histBody"><tr><td colspan="5" class="small" style="text-align:center;color:#94a3b8">Noch nichts gespeichert.</td></tr></tbody>
+        </table>
+      </div>
+    </div>
   </div>
 </div>
 
 <script>
+/* ========= Utilities ========= */
 const $=q=>document.querySelector(q);const $$=q=>Array.from(document.querySelectorAll(q));
 const fmt=(n,cur)=>Number(n||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})+(cur?(" "+cur):"");
 const today=()=>new Date().toISOString().slice(0,10);
+const VAT_CATS=[{c:"S",t:"Standardbesteuert"},{c:"Z",t:"Nullsteuer"},{c:"E",t:"Steuerbefreit"},{c:"AE",t:"Reverse Charge"},{c:"K",t:"Kleinunternehmer"}];
+let unitDefault="C62";
+const LS={prefix:"invgen_",k:{defaults:"invgen_defaults",contacts:"invgen_contacts",history:"invgen_history",lastNr:"invgen_lastNr",logo:"invgen_logo",unit:"invgen_unit"}};
+const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
+function padNum(n, len){const s=String(n); return s.length>=len?s:("0".repeat(len-s.length)+s);}
+function nextInvoiceNumber(s){
+  if(!s) return "RE-"+(new Date().getFullYear())+"-0001";
+  const m=s.match(/(.*?)(\d+)(\D*)$/);
+  if(!m) return s+"-0001";
+  const prefix=m[1], num=m[2], suffix=m[3];
+  return prefix+padNum(parseInt(num,10)+1,num.length)+suffix;
+}
+
+/* ========= Initial UI setup ========= */
 $("#invDate").value=today();
 $("#profile").value="EN16931";
-const VAT_CATS=[{c:"S",t:"Standardbesteuert"},{c:"Z",t:"Nullsteuer"},{c:"E",t:"Steuerbefreit"},{c:"AE",t:"Reverse Charge"},{c:"K",t:"Kleinunternehmer"}];
-const unitDefault="C62";
+$("#unitDefaultLbl").textContent=unitDefault;
 
+/* ========= Items (rows) ========= */
 function addRow(pref){
   const tb=$("#items tbody");const r=document.createElement("tr");
   r.innerHTML=`<td><input class="pos" style="width:64px" value="${(tb.children.length+1)}"/></td>
-  <td><input class="name" required value="${pref?.name??1}"/></td>
-  <td><input class="desc" value="${pref?.desc??1}"/></td>
+  <td><input class="name" required value="${pref?.name??""}"/></td>
+  <td><input class="desc" value="${pref?.desc??""}"/></td>
   <td><input class="qty" type="number" step="0.0001" min="0" value="${pref?.qty??1}"/></td>
   <td><input class="unit" value="${pref?.unit??unitDefault}"/></td>
   <td><input class="price" type="number" step="0.0001" min="0" value="${pref?.price??0}"/></td>
@@ -220,10 +322,14 @@ function addRow(pref){
   <td><input class="vatrate" type="number" step="0.01" min="0" value="${pref?.rate??19}"/></td>
   <td><input class="disc" type="number" step="0.01" value="${pref?.disc??0}" title="%"/></td>
   <td class="lnet">0,00</td><td class="ltax">0,00</td><td class="lgross">0,00</td>
-  <td><button class="red del">✕</button></td>`;
+  <td class="row" style="gap:6px">
+    <button class="ghost dup" title="Duplizieren">⧉</button>
+    <button class="red del" title="Löschen">✕</button>
+  </td>`;
   tb.appendChild(r);
   r.querySelector(".vatcat").value=pref?.cat||"S";
   r.querySelector(".del").onclick=()=>{r.remove(); renum(); recalc();};
+  r.querySelector(".dup").onclick=()=>{ const data=rowToObj(r); addRow(data); renum(); recalc(); };
   r.querySelectorAll("input,select").forEach(el=>el.addEventListener("input",recalc));
   recalc();
 }
@@ -232,6 +338,7 @@ $("#addRow").onclick=()=>addRow();
 $("#clearRows").onclick=()=>{$("#items tbody").innerHTML="";recalc();};
 addRow({price:100,qty:1,rate:19,unit:"C62",cat:"S"});
 
+/* ========= Totals / QR ========= */
 function recalc(){
   const cur=$("#currency").value;
   let net=0,tax=0,gross=0;
@@ -254,7 +361,7 @@ function recalc(){
   $("#tCur").textContent=cur;$("#tCur2").textContent=cur;$("#tCur3").textContent=cur;
   genQRPreview();
 }
-$$("input,select").forEach(e=>e.addEventListener("input",recalc));
+$$("input,select,textarea").forEach(e=>e.addEventListener("input",recalc));
 
 function ibanClean(v){return (v||"").replace(/\s+/g,"").toUpperCase()}
 function isValidIBAN(i){const s=ibanClean(i);if(!/^[A-Z]{2}\d{2}[A-Z0-9]{1,30}$/.test(s))return false;const r=(s.slice(4)+s.slice(0,4)).replace(/[A-Z]/g,c=>c.charCodeAt(0)-55);let m="";for(let i=0;i<r.length;i+=7){m=String(parseInt((m+r.substring(i,i+7)),10)%97)}return m==="1"}
@@ -276,6 +383,21 @@ function genQRPreview(){
 $("#dlQR").onclick=()=>{
   const a=document.createElement("a");a.href=$("#qrCanvas").toDataURL("image/png");a.download=`epc_${($("#invNumber").value||"invoice")}.png`;a.click();
 };
+
+/* ========= Collect / Populate ========= */
+function rowToObj(tr){
+  return {
+    pos: tr.querySelector(".pos").value,
+    name: tr.querySelector(".name").value.trim(),
+    desc: tr.querySelector(".desc").value.trim(),
+    qty: parseFloat(tr.querySelector(".qty").value||"0"),
+    unit: tr.querySelector(".unit").value.trim()||unitDefault,
+    price: parseFloat(tr.querySelector(".price").value||"0"),
+    cat: tr.querySelector(".vatcat").value,
+    rate: parseFloat(tr.querySelector(".vatrate").value||"0"),
+    disc: parseFloat(tr.querySelector(".disc").value||"0")
+  };
+}
 
 function collect(){
   const cur=$("#currency").value;
@@ -323,22 +445,15 @@ function collect(){
   };
   const lines=[]; const taxByRate=new Map();
   $("#items tbody").querySelectorAll("tr").forEach((tr,idx)=>{
-    const pos=tr.querySelector(".pos").value||String(idx+1);
-    const name=tr.querySelector(".name").value.trim();
-    const desc=tr.querySelector(".desc").value.trim();
-    const qty=parseFloat(tr.querySelector(".qty").value||"0");
-    const unit=tr.querySelector(".unit").value.trim()||unitDefault;
-    const price=parseFloat(tr.querySelector(".price").value||"0");
-    const cat=tr.querySelector(".vatcat").value;
-    const rate=parseFloat(tr.querySelector(".vatrate").value||"0");
-    const disc=parseFloat(tr.querySelector(".disc").value||"0");
-    let lineNet=qty*price; if(disc>0) lineNet=lineNet*(1-disc/100);
-    const lineTax=(cat==="Z"||cat==="E"||cat==="K")?0:lineNet*rate/100;
+    const obj=rowToObj(tr);
+    let lineNet=obj.qty*obj.price; if(obj.disc>0) lineNet=lineNet*(1-obj.disc/100);
+    const lineTax=(obj.cat==="Z"||obj.cat==="E"||obj.cat==="K")?0:lineNet*obj.rate/100;
     const lineGross=lineNet+lineTax;
-    lines.push({pos,name,desc,qty,unit,price,disc,cat,rate,lineNet,lineTax,lineGross});
+    const out={...obj,lineNet,lineTax,lineGross,pos:obj.pos||String(idx+1)};
+    lines.push(out);
     if(lineTax>0){
-      const k=`${cat}|${rate}`;
-      const prev=taxByRate.get(k)||{cat,rate,base:0,tax:0};
+      const k=`${out.cat}|${out.rate}`;
+      const prev=taxByRate.get(k)||{cat:out.cat,rate:out.rate,base:0,tax:0};
       prev.base+=lineNet; prev.tax+=lineTax; taxByRate.set(k,prev);
     }
   });
@@ -348,8 +463,37 @@ function collect(){
     gross:lines.reduce((s,l)=>s+l.lineGross,0),
     due:lines.reduce((s,l)=>s+l.lineGross,0)
   };
-  return {header,seller,buyer,payment,lines,taxBreakdown:[...taxByRate.values()],totals};
+  return {header,seller,buyer,payment,lines,taxBreakdown:[...taxByRate.values()],totals,meta:{logo:getLogo(),unitDefault}};
 }
+
+function populate(d){
+  if(!d) return;
+  $("#profile").value=d.header?.profile||"EN16931";
+  $("#invNumber").value=d.header?.number||"";
+  $("#invDate").value=d.header?.date||today();
+  $("#dueDate").value=d.header?.dueDate||"";
+  $("#currency").value=d.header?.currency||"EUR";
+  $("#orderRef").value=d.header?.orderRef||"";
+  $("#buyerRef").value=d.header?.buyerRef||"";
+  $("#supplyDate").value=d.header?.supplyDate||"";
+  $("#notes").value=d.header?.notes||"";
+  const s=d.seller||{}; $("#sellerName").value=s.name||""; $("#sellerStreet").value=s.street||""; $("#sellerZip").value=s.zip||"";
+  $("#sellerCity").value=s.city||""; $("#sellerCountry").value=s.country||"DE"; $("#sellerVAT").value=s.vat||"";
+  $("#sellerFC").value=s.fc||""; $("#sellerReg").value=s.reg||""; $("#sellerEmail").value=s.email||""; $("#sellerPhone").value=s.phone||"";
+  const b=d.buyer||{}; $("#buyerName").value=b.name||""; $("#buyerStreet").value=b.street||""; $("#buyerZip").value=b.zip||"";
+  $("#buyerCity").value=b.city||""; $("#buyerCountry").value=b.country||"DE"; $("#buyerVAT").value=b.vat||"";
+  $("#buyerFC").value=b.fc||""; $("#buyerEmail").value=b.email||""; $("#buyerPhone").value=b.phone||"";
+  const p=d.payment||{}; $("#payType").value=p.type||"58"; $("#iban").value=p.iban||""; $("#bic").value=p.bic||"";
+  $("#accHolder").value=p.holder||""; $("#payTerms").value=p.terms||""; $("#remittance").value=p.remittance||"";
+  $("#items tbody").innerHTML="";
+  (d.lines||[]).forEach(l=>addRow(l));
+  if(!d.lines||!d.lines.length) addRow({price:100,qty:1,rate:19,unit:"C62",cat:"S"});
+  if(d.meta?.logo) setLogo(d.meta.logo);
+  if(d.meta?.unitDefault){ unitDefault=d.meta.unitDefault; $("#unitDefaultLbl").textContent=unitDefault; }
+  recalc();
+}
+
+/* ========= Validate / XML builder ========= */
 function validate(d){
   const errs=[];
   if(!d.header.number) errs.push("Rechnungsnummer");
@@ -476,31 +620,10 @@ function buildCII(d){
 </rsm:CrossIndustryInvoice>`;
 }
 
-$("#genXml").onclick=()=>{
-  const data=collect(); const errs=validate(data);
-  if(errs.length){alert("Fehlende/ungültige Felder:\n- "+errs.join("\n- "));return}
-  const xml=buildCII(data);
-  $("#xmlOut").textContent=xml;
-  const blob=new Blob([xml],{type:"application/xml"});
-  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`${data.header.number||"invoice"}.xml`;a.click();
-};
-$("#dlJson").onclick=()=>{
-  const d=collect();const blob=new Blob([JSON.stringify(d,null,2)],{type:"application/json"});
-  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`${d.header.number||"invoice"}.json`;a.click();
-};
-$("#dlCsv").onclick=()=>{
-  const d=collect(); if(!d.lines.length){alert("Keine Positionen.");return}
-  const sep=",";
-  const head=["Pos","Produkt","Beschreibung","Menge","Einheit","Einzelpreis","USt-Kat","USt-%","Rabatt%","Netto","Steuer","Brutto"].join(sep);
-  const rows=d.lines.map(l=>[l.pos,`"${l.name.replace(/"/g,'""')}"`,`"${(l.desc||"").replace(/"/g,'""')}"`,l.qty,l.unit,l.price,l.cat,l.rate,l.disc,l.lineNet,l.lineTax,l.lineGross].join(sep));
-  const csv=[head,...rows].join("\n");
-  const blob=new Blob([csv],{type:"text/csv"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`${d.header.number||"invoice"}_positionen.csv`;a.click();
-};
-
+/* ========= PDF / XMP ========= */
 function wrapLines(text,font,size,maxWidth){
   if(!text) return [""];
-  const lines=[];
-  const paragraphs=String(text).split(/\r?\n/);
+  const lines=[]; const paragraphs=String(text).split(/\r?\n/);
   for(const para of paragraphs){
     const words=para.split(/\s+/);
     let cur="";
@@ -517,7 +640,6 @@ function wrapLines(text,font,size,maxWidth){
   }
   return lines;
 }
-
 async function canvasQR(text,size){
   return await new Promise((res,rej)=>{
     const c=document.createElement("canvas"); QRCode.toCanvas(c,text,{width:size,height:size,errorCorrectionLevel:"M"},err=>{
@@ -526,7 +648,6 @@ async function canvasQR(text,size){
     });
   });
 }
-
 function buildXMP(d){
   const now=new Date().toISOString();
   const title=`Rechnung ${d.header.number}`;
@@ -563,9 +684,7 @@ function buildXMP(d){
 </x:xmpmeta>
 <?xpacket end="w"?>`;
 }
-
 const SRGB_ICC=`AAAPN2ljYwAAACJnY2NwICBJRUMgNjE5NjYtMi4xIGRlZmF1bHQgc3JnYiBwcm9maWxlAAAAAAEAAQAAAQAAAwAAAAEACG1sdWMAAAEwbW5kICBJRUMgNjE5NjYtMi4xAAAAAAEAAABYAAABfGNwcnQAAAABAAAAAQAAAQAAAAEAAAAAAAAAAAAA`.replace(/\s+/g,"");
-
 function base64ToBytes(b64){const bin=atob(b64);const len=bin.length;const bytes=new Uint8Array(len);for(let i=0;i<len;i++)bytes[i]=bin.charCodeAt(i);return bytes;}
 
 async function embedFileAF(pdfDoc, bytes, fileName, mime, desc){
@@ -590,9 +709,7 @@ async function embedFileAF(pdfDoc, bytes, fileName, mime, desc){
   if(!names){
     names = ctx.obj({}); pdfDoc.catalog.set(PDFName.of('Names'), names);
   }
-  const embedded = ctx.obj({
-    Names: [ PDFString.of(fileName), fsRef ]
-  });
+  const embedded = ctx.obj({ Names: [ PDFString.of(fileName), fsRef ]});
   names.set(PDFName.of('EmbeddedFiles'), embedded);
   const afArr = ctx.obj([ fsRef ]);
   pdfDoc.catalog.set(PDFName.of('AF'), afArr);
@@ -610,13 +727,23 @@ async function buildPDF(d, xmlText){
   doc.setLanguage("de-DE");
 
   const font=await doc.embedFont(StandardFonts.Helvetica);
-
   const pageSize=[595.28,841.89];
   let page=doc.addPage(pageSize);
   const margin=40; let y=pageSize[1]-margin;
-
   const draw=(text,x,yy,size=10)=>{page.drawText(String(text||""),{x,y:yy,size,font,color:rgb(0,0,0)})};
   const line=()=>{y-=12; page.drawLine({start:{x:margin,y}, end:{x:pageSize[0]-margin,y}, color:rgb(.8,.8,.8), thickness:1}); y-=8;}
+
+  /* Logo top-right */
+  if(d.meta?.logo){
+    try{
+      const {dataUrl}=d.meta.logo;
+      const isPng=dataUrl.startsWith("data:image/png");
+      const bytes=await (await fetch(dataUrl)).arrayBuffer();
+      const img=isPng? await doc.embedPng(bytes) : await doc.embedJpg(bytes);
+      const w=140; const scale=w/img.width; const h=img.height*scale;
+      page.drawImage(img,{x:pageSize[0]-margin-w,y:y-h+10,width:w,height:h});
+    }catch(e){ /* ignore */ }
+  }
 
   draw(d.seller.name,margin,y,14); y-=16;
   draw((d.seller.street||""),margin,y); y-=12;
@@ -666,7 +793,6 @@ async function buildPDF(d, xmlText){
     page.drawText((Math.round(it.lineTax*100)/100).toFixed(2),{x:col[7],y,size:10,font});
     page.drawText((Math.round(it.lineGross*100)/100).toFixed(2),{x:col[8],y,size:10,font});
     y-=14;
-
     if(nmWrapped.length>1){
       nmWrapped.slice(1).forEach(t=>{page.drawText(t,{x:col[1],y,size:10,font}); y-=12;});
     }
@@ -726,6 +852,30 @@ async function buildPDF(d, xmlText){
   return new Blob([bytes],{type:"application/pdf"});
 }
 
+/* ========= Buttons: generate / export / import ========= */
+$("#genXml").onclick=()=>{
+  const data=collect(); const errs=validate(data);
+  if(errs.length){alert("Fehlende/ungültige Felder:\n- "+errs.join("\n- "));return}
+  const xml=buildCII(data);
+  $("#xmlOut").textContent=xml;
+  const blob=new Blob([xml],{type:"application/xml"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`${data.header.number||"invoice"}.xml`;a.click();
+};
+$("#dlJson").onclick=()=>{
+  const d=collect();const blob=new Blob([JSON.stringify(d,null,2)],{type:"application/json"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`${d.header.number||"invoice"}.json`;a.click();
+};
+$("#dlCsv").onclick=()=>{
+  const d=collect(); if(!d.lines.length){alert("Keine Positionen.");return}
+  const sep=",";
+  const head=["Pos","Produkt","Beschreibung","Menge","Einheit","Einzelpreis","USt-Kat","USt-%","Rabatt%","Netto","Steuer","Brutto"].join(sep);
+  const rows=d.lines.map(l=>[l.pos,`"${l.name.replace(/"/g,'""')}"`,`"${(l.desc||"").replace(/"/g,'""')}"`,l.qty,l.unit,l.price,l.cat,l.rate,l.disc,l.lineNet,l.lineTax,l.lineGross].join(sep));
+  const csv=[head,...rows].join("\n");
+  const blob=new Blob([csv],{type:"text/csv"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`${d.header.number||"invoice"}_positionen.csv`;a.click();
+};
+    
+/* PDF erzeugen (und Historie aktualisieren) */
 $("#genPdf").onclick=async()=>{
   const data=collect(); const errs=validate(data);
   if(errs.length){alert("Fehlende/ungültige Felder:\n- "+errs.join("\n- "));return}
@@ -733,20 +883,236 @@ $("#genPdf").onclick=async()=>{
   const pdfBlob=await buildPDF(data, xml);
   const a=document.createElement("a"); a.href=URL.createObjectURL(pdfBlob); a.download=`${data.header.number||"invoice"}.pdf`; a.click();
   $("#xmlOut").textContent=xml;
-};
-
-$("#btnReset").onclick=()=>{
-  $$("input,textarea").forEach(el=>{
-    if(el.id==="invDate"){el.value=today();return;}
-    if(el.type==="date"){el.value="";return;}
-    if(el.tagName==="SELECT") return;
-    el.value="";
+  
+  // Historie speichern
+  pushHistory({
+    number:data.header.number,
+    date:data.header.date,
+    buyer:data.buyer.name,
+    gross:data.totals.gross,
+    currency:data.header.currency,
+    snapshot:data
   });
-  $("#currency").value="EUR"; $("#profile").value="EN16931";
-  $("#items tbody").innerHTML=""; addRow({price:100,qty:1,rate:19,unit:"C62",cat:"S"});
+  // letzte Nummer merken
+  setLastNr(data.header.number);
+};
+    
+/* JSON-Import einer einzelnen Rechnung */
+$("#uploadJson").addEventListener("change", async (ev)=>{
+  const f=ev.target.files?.[0]; if(!f) return;
+  try{
+    const txt=await f.text(); const d=JSON.parse(txt);
+    populate(d);
+  }catch(e){ alert("Import fehlgeschlagen: "+(e?.message||e)); }
+  ev.target.value="";
+});
+    
+/* ========= LOCAL STORAGE: Defaults, Kontakte, Historie, Logo, Nummern ========= */
+function lsGet(k, fallback){ try{const v=localStorage.getItem(k); return v?JSON.parse(v):fallback;}catch{return fallback} }
+function lsSet(k, v){ try{localStorage.setItem(k, JSON.stringify(v));}catch(e){ alert("Lokaler Speicher voll/gesperrt? "+e)} }
+    
+/* Defaults (eigene Adresse etc.) */
+function getDefaults(){ return lsGet(LS.k.defaults,null) }
+function setDefaults(obj){ lsSet(LS.k.defaults,obj) }
+function clearDefaults(){ localStorage.removeItem(LS.k.defaults) }
+    
+$("#btnSaveDefaults").onclick=()=>{
+  const d=collect();
+  setDefaults({seller:d.seller, payment:d.payment, currency:d.header.currency, unitDefault});
+  alert("Standard gespeichert (lokal).");
+};
+$("#btnLoadDefaults").onclick=()=>{
+  const def=getDefaults(); if(!def){alert("Kein Standard gespeichert.");return}
+  // nur relevante Teile anwenden
+  $("#currency").value=def.currency||"EUR";
+  unitDefault=def.unitDefault||unitDefault; $("#unitDefaultLbl").textContent=unitDefault;
+  const s=def.seller||{}, p=def.payment||{};
+  $("#sellerName").value=s.name||""; $("#sellerStreet").value=s.street||""; $("#sellerZip").value=s.zip||"";
+  $("#sellerCity").value=s.city||""; $("#sellerCountry").value=s.country||"DE"; $("#sellerVAT").value=s.vat||"";
+  $("#sellerFC").value=s.fc||""; $("#sellerReg").value=s.reg||""; $("#sellerEmail").value=s.email||""; $("#sellerPhone").value=s.phone||"";
+  $("#payType").value=p.type||"58"; $("#iban").value=p.iban||""; $("#bic").value=p.bic||""; $("#accHolder").value=p.holder||""; $("#payTerms").value=p.terms||"";
   recalc();
 };
-
+$("#btnClearDefaults").onclick=()=>{ clearDefaults(); alert("Standard gelöscht."); };
+    
+/* Letzte Rechnungsnummer + Nächste Nr. */
+function getLastNr(){ return lsGet(LS.k.lastNr,"") }
+function setLastNr(nr){ if(nr) lsSet(LS.k.lastNr,nr) }
+$("#btnRememberNr").onclick=()=>{
+  const nr=$("#invNumber").value.trim(); if(!nr){alert("Keine Nummer eingetragen.");return}
+  setLastNr(nr); alert("Rechnungsnummer gemerkt.");
+};
+$("#btnNextNr").onclick=()=>{
+  const cur=$("#invNumber").value.trim() || getLastNr();
+  const nxt=nextInvoiceNumber(cur||"");
+  $("#invNumber").value=nxt;
+  setLastNr(nxt);
+};
+    
+/* Kontakte (Adressbuch Käufer) */
+function getContacts(){ return lsGet(LS.k.contacts,[]) }
+function setContacts(list){ lsSet(LS.k.contacts,list) }
+function refreshContactSelect(){
+  const sel=$("#contactSelect"); const cur=sel.value;
+  const contacts=getContacts();
+  sel.innerHTML='<option value="">— Kontakt auswählen —</option>'+
+    contacts.map((c,i)=>`<option value="${i}">${(c.name||"(ohne Name)")} – ${c.city||""}</option>`).join("");
+  if(cur && sel.querySelector(`option[value="${cur}"]`)) sel.value=cur;
+}
+$("#btnSaveContact").onclick=()=>{
+  const d=collect().buyer;
+  if(!d.name){alert("Kontakt ohne Namen?");return}
+  const list=getContacts(); list.push(d); setContacts(list); refreshContactSelect(); alert("Kontakt gespeichert.");
+};
+$("#btnLoadContact").onclick=()=>{
+  const idx=parseInt($("#contactSelect").value,10);
+  const list=getContacts(); if(isNaN(idx)||!list[idx]){alert("Kein Kontakt gewählt.");return}
+  const b=list[idx];
+  $("#buyerName").value=b.name||""; $("#buyerStreet").value=b.street||""; $("#buyerZip").value=b.zip||"";
+  $("#buyerCity").value=b.city||""; $("#buyerCountry").value=b.country||"DE"; $("#buyerVAT").value=b.vat||"";
+  $("#buyerFC").value=b.fc||""; $("#buyerEmail").value=b.email||""; $("#buyerPhone").value=b.phone||"";
+  recalc();
+};
+$("#btnDelContact").onclick=()=>{
+  const idx=parseInt($("#contactSelect").value,10);
+  const list=getContacts(); if(isNaN(idx)||!list[idx]){alert("Kein Kontakt gewählt.");return}
+  if(!confirm("Kontakt wirklich löschen?")) return;
+  list.splice(idx,1); setContacts(list); refreshContactSelect();
+};
+    
+/* Historie */
+function getHistory(){ return lsGet(LS.k.history,[]) }
+function setHistory(list){ lsSet(LS.k.history,list) }
+function pushHistory(entry){
+  const list=getHistory();
+  // gleiche Nummer ersetzen
+  const i=list.findIndex(h=>h.number===entry.number);
+  if(i>=0) list[i]=entry; else list.unshift({...entry, ts:Date.now()});
+  setHistory(list); renderHistory();
+}
+function renderHistory(){
+  const body=$("#histBody"); const list=getHistory();
+  if(!list.length){ body.innerHTML='<tr><td colspan="5" class="small" style="text-align:center;color:#94a3b8">Noch nichts gespeichert.</td></tr>'; return }
+  body.innerHTML=list.map((h,idx)=>`
+    <tr>
+      <td>${h.number}</td>
+      <td>${h.date||""}</td>
+      <td>${h.buyer||""}</td>
+      <td style="text-align:right">${fmt(h.gross, h.currency)}</td>
+      <td class="row" style="gap:6px">
+        <button class="ghost" data-act="load" data-i="${idx}">Laden</button>
+        <button class="ghost" data-act="export" data-i="${idx}">JSON</button>
+        <button class="red" data-act="del" data-i="${idx}">✕</button>
+      </td>
+    </tr>`).join("");
+  body.querySelectorAll("button").forEach(btn=>{
+    btn.onclick=()=>{
+      const i=parseInt(btn.dataset.i,10); const act=btn.dataset.act; const list=getHistory(); const item=list[i];
+      if(act==="load"){ populate(item.snapshot); }
+      if(act==="export"){
+        const blob=new Blob([JSON.stringify(item.snapshot,null,2)],{type:"application/json"});
+        const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`${item.number||"invoice"}.json`;a.click();
+      }
+      if(act==="del"){
+        if(!confirm("Eintrag löschen?")) return;
+        list.splice(i,1); setHistory(list); renderHistory();
+      }
+    };
+  });
+}
+$("#btnSaveHistory").onclick=()=>{
+  const data=collect(); const errs=validate(data);
+  if(errs.length){alert("Fehlende/ungültige Felder:\n- "+errs.join("\n- "));return}
+  pushHistory({
+    number:data.header.number,
+    date:data.header.date,
+    buyer:data.buyer.name,
+    gross:data.totals.gross,
+    currency:data.header.currency,
+    snapshot:data
+  });
+  setLastNr(data.header.number);
+  alert("In Historie gespeichert.");
+};
+$("#btnClearHistory").onclick=()=>{
+  if(!confirm("Gesamte Historie löschen?")) return;
+  setHistory([]); renderHistory();
+};
+    
+/* ========= Logo ========= */
+function setLogo(obj){
+  if(!obj){ $("#logoPreview").innerHTML='<span class="small">Kein Logo</span>'; return }
+  $("#logoPreview").innerHTML="";
+  const img=document.createElement("img"); img.alt="Logo"; img.src=obj.dataUrl;
+  $("#logoPreview").appendChild(img);
+}
+function getLogo(){ return lsGet(LS.k.logo,null) }
+function saveLogo(obj){ lsSet(LS.k.logo,obj) }
+function clearLogo(){ localStorage.removeItem(LS.k.logo); setLogo(null) }
+    
+$("#logoFile").addEventListener("change", async (ev)=>{
+  const f=ev.target.files?.[0]; if(!f) return;
+  if(!/^image\/(png|jpe?g)$/.test(f.type)){ alert("Nur PNG oder JPG."); ev.target.value=""; return }
+  const dataUrl=await new Promise(res=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.readAsDataURL(f); });
+  setLogo({dataUrl, name:f.name, type:f.type});
+  ev.target.value="";
+});
+$("#btnSaveLogo").onclick=()=>{
+  const cur=getLogo();
+  if(!cur){ alert("Bitte zuerst eine Bilddatei wählen."); return }
+  saveLogo(cur); alert("Logo als Standard gespeichert (lokal).");
+};
+$("#btnClearLogo").onclick=()=>{ clearLogo(); };
+    
+/* ========= Backup/Restore ganzer lokaler Speicher ========= */
+$("#btnBackup").onclick=()=>{
+  const dump={
+    version:1,
+    ts:Date.now(),
+    data:{
+      [LS.k.defaults]: getDefaults(),
+      [LS.k.contacts]: getContacts(),
+      [LS.k.history]:  getHistory(),
+      [LS.k.lastNr]:   getLastNr(),
+      [LS.k.logo]:     getLogo(),
+      [LS.k.unit]:     unitDefault
+    }
+  };
+  const blob=new Blob([JSON.stringify(dump,null,2)],{type:"application/json"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="invoicegenerator_backup.json"; a.click();
+};
+$("#uploadBackup").addEventListener("change", async (ev)=>{
+  const f=ev.target.files?.[0]; if(!f) return;
+  try{
+    const txt=await f.text(); const dump=JSON.parse(txt);
+    const d=dump?.data||{};
+    if(d.hasOwnProperty(LS.k.defaults)) lsSet(LS.k.defaults, d[LS.k.defaults]);
+    if(d.hasOwnProperty(LS.k.contacts)) lsSet(LS.k.contacts, d[LS.k.contacts]||[]);
+    if(d.hasOwnProperty(LS.k.history))  lsSet(LS.k.history,  d[LS.k.history]||[]);
+    if(d.hasOwnProperty(LS.k.lastNr))   lsSet(LS.k.lastNr,   d[LS.k.lastNr]||"");
+    if(d.hasOwnProperty(LS.k.logo))     lsSet(LS.k.logo,     d[LS.k.logo]||null);
+    if(d.hasOwnProperty(LS.k.unit))     unitDefault = d[LS.k.unit] || unitDefault;
+    $("#unitDefaultLbl").textContent=unitDefault;
+    refreshContactSelect(); renderHistory();
+    const logo=getLogo(); if(logo) setLogo(logo); else setLogo(null);
+    alert("Backup importiert.");
+  }catch(e){ alert("Backup-Import fehlgeschlagen: "+(e?.message||e)); }
+  ev.target.value="";
+});
+$("#btnWipeAll").onclick=()=>{
+  if(!confirm("Wirklich ALLE lokalen Daten (Defaults, Kontakte, Historie, Logo, Nummern) löschen?")) return;
+  [LS.k.defaults,LS.k.contacts,LS.k.history,LS.k.lastNr,LS.k.logo,LS.k.unit].forEach(k=>localStorage.removeItem(k));
+  unitDefault="C62"; $("#unitDefaultLbl").textContent=unitDefault;
+  refreshContactSelect(); renderHistory(); setLogo(null);
+  alert("Alles lokal gelöscht.");
+};
+    
+/* ========= Sonstiges / Init ========= */
+function loadUnitDefault(){
+  const u=lsGet(LS.k.unit,null); if(u){ unitDefault=u; $("#unitDefaultLbl").textContent=unitDefault; }
+}
+function saveUnitDefault(){ lsSet(LS.k.unit, unitDefault) }
+    
 $("#btnSample").onclick=()=>{
   $("#profile").value="EN16931";
   $("#invNumber").value="RE-2025-0815";
@@ -756,7 +1122,7 @@ $("#btnSample").onclick=()=>{
   $("#orderRef").value="PO-45678";
   $("#buyerRef").value="KST-100/Schmidt";
   $("#supplyDate").value=today();
-  $("#notes").value="Zahlbar 14 Tage netto. Vielen Dank!";
+  $("#notes").value="Zahlbar 14 Tage netto. Vielen Dank!\nDieses Dokument und Ihre Daten werden ausschließlich lokal verarbeitet.";
   $("#sellerName").value="Muster GmbH";
   $("#sellerStreet").value="Hauptstraße 1";
   $("#sellerZip").value="10115";
@@ -786,48 +1152,35 @@ $("#btnSample").onclick=()=>{
   addRow({pos:3,name:"Wartung",desc:"12 Monate",qty:1,unit:"C62",price:300,rate:0,cat:"Z"});
   recalc();
 };
-
-/* PWA */
-(function(){
-  const manifest = {
-    name: "E-Rechnung Generator",
-    short_name: "E-Rechnung",
-    start_url: ".",
-    display: "standalone",
-    background_color: "#ffffff",
-    theme_color: "#0d6efd",
-    icons: [
-      { src: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAYAAABl8KqfAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAAG0lEQVR42u3BMQEAAADCoPVPbQhPoAAAAAAAAAAAwOcG2AAB1q2b0wAAAABJRU5ErkJggg==", sizes: "192x192", type: "image/png" },
-      { src: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAQAAAAEACAYAAABccqhmAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAAG0lEQVR42u3BMQEAAADCoPVPbQhPoAAAAAAAAAAAwOcG2AAB1q2b0wAAAABJRU5ErkJggg==", sizes: "512x512", type: "image/png" }
-    ]
-  };
-  const blob = new Blob([JSON.stringify(manifest)], {type: "application/json"});
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("link");
-  link.rel = "manifest"; link.href = url; document.head.appendChild(link);
-
-  let deferredPrompt=null;
-
-  if('serviceWorker' in navigator){
-    const swCode = `
-      const C='erechnung-v1';
-      const ASSETS=[ self.location.href,
-        'https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js',
-        'https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js'
-      ];
-      self.addEventListener('install',e=>{ e.waitUntil(caches.open(C).then(c=>c.addAll(ASSETS.map(u=>new Request(u,{mode:'no-cors'})))).then(()=>self.skipWaiting()))});
-      self.addEventListener('activate',e=>{ e.waitUntil(self.clients.claim())});
-      self.addEventListener('fetch',e=>{
-        const req=e.request;
-        e.respondWith(
-          caches.match(req).then(r=> r || fetch(req).then(res=>{ const copy=res.clone(); caches.open(C).then(c=>c.put(req, copy)); return res; }).catch(()=>caches.match(self.location.href)))
-        );
-      });
-    `;
-    const swBlob = new Blob([swCode], {type:'text/javascript'});
-    const swUrl = URL.createObjectURL(swBlob);
-    navigator.serviceWorker.register(swUrl, {scope: './'}).catch(()=>{});
+    
+/* Unit-Default speichern, wenn Nutzer das Feld Unit in erster Zeile ändert (Quality-of-life) */
+$("#items").addEventListener("input",(e)=>{
+  if(e.target?.classList?.contains("unit")){
+    const val=e.target.value?.trim(); if(val){ unitDefault=val; $("#unitDefaultLbl").textContent=unitDefault; saveUnitDefault(); }
   }
+});
+    
+/* Historie-Aktionen im Kopf */
+$("#btnReset").onclick=()=>{
+  $$("input,textarea").forEach(el=>{
+    if(el.id==="invDate"){el.value=today();return;}
+    if(el.type==="date"){el.value="";return;}
+    if(el.tagName==="SELECT") return;
+    el.value="";
+  });
+  $("#currency").value="EUR"; $("#profile").value="EN16931";
+  $("#items tbody").innerHTML=""; addRow({price:100,qty:1,rate:19,unit:unitDefault,cat:"S"});
+  recalc();
+};
+    
+/* Initialisieren */
+(function init(){
+  loadUnitDefault();
+  refreshContactSelect();
+  renderHistory();
+  const logo=getLogo(); if(logo) setLogo(logo);
+  const last=getLastNr(); if(last && !$("#invNumber").value) $("#invNumber").value=nextInvoiceNumber(last);
+  recalc();
 })();
 </script>
 </body>
