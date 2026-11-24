@@ -2,6 +2,7 @@ import { $ } from "../utils.js";
 import { collect, openDraft, recalc } from "./draft-form.js";
 import { downloadArtifact, downloadJSON } from "./download.js";
 import { language, localeChangeEvent, tr } from "./i18n.js";
+import { notify } from "./notify.js";
 import { normalizeDraft, readJsonFile } from "./import-data.js";
 import { readLineCsv, serializeLineCsv } from "./line-csv.js";
 import { hasLineItemsToReplace, replaceLines } from "./line-items.js";
@@ -99,7 +100,9 @@ export function initDraftFiles() {
   $("#dlCsv").onclick = () => {
     const snapshot = collect();
     if (!snapshot.lines.length) {
-      alert(tr("Keine Positionen.", "There are no line items."));
+      notify(tr("Keine Positionen.", "There are no line items."), {
+        error: true,
+      });
       return;
     }
     const blob = new Blob([serializeLineCsv(snapshot.lines, language())], {
@@ -127,8 +130,9 @@ export function initDraftFiles() {
       }
     } catch (error) {
       if (input.files?.[0] === file) {
-        alert(
+        notify(
           tr("Import fehlgeschlagen.", "Import failed.") + "\n" + error.message,
+          { error: true },
         );
       }
     } finally {

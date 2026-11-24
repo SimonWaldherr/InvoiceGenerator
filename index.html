@@ -4,266 +4,334 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; frame-src blob:; base-uri 'none'; form-action 'none'"/>
+<meta name="theme-color" content="#f3f5fa"/>
 <title data-i18n="pageTitle">E-Rechnung Generator – ZUGFeRD und XRechnung</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232563eb'/%3E%3Cpath d='M9.5 6H18l6 6v13a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 8 25V7.5A1.5 1.5 0 0 1 9.5 6z' fill='%23fff'/%3E%3Cpath d='M12 17h8M12 21h8M12 13h3' stroke='%232563eb' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E"/>
 <link rel="stylesheet" href="./style.css"/>
 </head>
 <body>
+<a class="skip-link" href="#main" data-i18n="skipToForm">Zum Formular springen</a>
 <div class="container">
   <header class="page-heading">
-    <div class="row page-title">
-      <h1 data-i18n="heading">E-Rechnung Generator</h1>
-      <div class="language-control">
-        <label for="language" data-i18n="languageLabel">Sprache</label>
-        <select id="language">
-          <option value="de" lang="de">Deutsch</option>
-          <option value="en" lang="en">English</option>
-        </select>
+    <div class="page-title">
+      <div class="page-title-text">
+        <h1 data-i18n="heading">E-Rechnung Generator</h1>
+        <p class="lede" data-i18n="description">ZUGFeRD und XRechnung im Browser erstellen. Ihre Rechnungsdaten bleiben auf diesem Gerät.</p>
+      </div>
+      <div class="header-tools">
+        <div class="header-select">
+          <label for="language" data-i18n="languageLabel">Sprache</label>
+          <select id="language">
+            <option value="de" lang="de">Deutsch</option>
+            <option value="en" lang="en">English</option>
+          </select>
+        </div>
+        <div class="header-select">
+          <label for="theme" data-i18n="themeLabel">Anzeige</label>
+          <select id="theme">
+            <option value="system" data-i18n="themeSystem">System</option>
+            <option value="light" data-i18n="themeLight">Hell</option>
+            <option value="dark" data-i18n="themeDark">Dunkel</option>
+          </select>
+        </div>
+        <button id="btnSettings" class="neutral" type="button">
+          <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true" focusable="false"><path d="M3 5h8m4 0h2M3 10h2m4 0h8M3 15h10m4 0h0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="13" cy="5" r="2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="7" cy="10" r="2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="15" cy="15" r="2" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+          <span data-i18n="settingsButton">Standards konfigurieren</span>
+        </button>
       </div>
     </div>
-    <p data-i18n="description">ZUGFeRD und XRechnung im Browser erstellen. Ihre Rechnungsdaten bleiben auf diesem Gerät.</p>
+  </header>
+
+  <div class="app-bar">
     <nav class="section-nav" aria-label="Rechnung bearbeiten" data-i18n-aria-label="sections">
       <a href="#invoiceDetails" data-i18n="invoiceDetails">Rechnungsdaten</a>
       <a href="#positionsHeading" data-i18n="lineItems">Rechnungspositionen</a>
-      <a href="#invoiceExport" data-i18n="jumpExport">Zum Export</a>
       <a href="#invoiceHistory" data-i18n="history">Historie (lokal)</a>
     </nav>
-  </header>
+    <div class="app-bar-summary">
+      <button id="barStatus" class="status-pill" type="button" data-state="open">
+        <span id="barStatusDot" class="status-dot" aria-hidden="true"></span>
+        <span id="barStatusText" class="status-text"></span>
+      </button>
+      <p class="app-bar-total">
+        <span class="app-bar-label" data-i18n="grossTotal">Gesamt brutto</span>
+        <strong><span id="barGross">0,00</span> <span id="barCur"></span></strong>
+      </p>
+      <a class="button" href="#invoiceExport" data-i18n="jumpExport">Zum Export</a>
+    </div>
+  </div>
 
-  <main class="grid">
-    <div class="card card-wide">
-      <div class="actions">
-        <button id="btnSample" class="gray" data-i18n="loadSample">Beispieldaten laden</button>
-        <button id="btnReset" class="red" data-i18n="resetDraft">Entwurf zurücksetzen</button>
-        <button id="btnSaveHistory" class="green" data-i18n="saveHistory">In Historie speichern</button>
-        <button id="btnNextNr" class="orange" data-i18n="nextNumber">Nächste Nr.</button>
-        <button id="btnSettings" class="ghost" type="button" data-i18n="settingsButton">Standards konfigurieren</button>
-        <span class="small" data-i18n="required">Pflichtfelder mit * gekennzeichnet</span>
-      </div>
+  <main class="grid" id="main" tabindex="-1">
+    <div class="toolbar" role="group" aria-label="Entwurfsaktionen" data-i18n-aria-label="draftActions">
+      <button id="btnSaveHistory" class="ghost" type="button" data-i18n="saveHistory">In Historie speichern</button>
+      <span id="draftState" class="draft-state" role="status" hidden></span>
+      <button id="btnSample" class="neutral" type="button" data-i18n="loadSample">Beispieldaten laden</button>
+      <button id="btnReset" class="neutral" type="button" data-i18n="resetDraft">Entwurf zurücksetzen</button>
+      <span class="small toolbar-hint" data-i18n="required">Pflichtfelder mit * gekennzeichnet</span>
     </div>
 
-    <!-- Header / Invoice meta -->
-    <div class="card" data-invoice-fields>
-      <h2 id="invoiceDetails" class="card-heading" tabindex="-1" data-i18n="invoiceDetails">Rechnungsdaten</h2>
-      <div class="kv">
-        <label for="profile" data-i18n="invoiceProfile">Rechnungsprofil</label>
-        <select id="profile" aria-describedby="exportFormats">
-          <option value="EN16931">EN 16931</option>
-          <option value="XRECHNUNG">XRechnung 3.0</option>
-        </select>
-        <label for="syntax" data-i18n="xmlSyntax">XML-Syntax</label>
-        <select id="syntax" aria-describedby="exportFormats">
-          <option value="CII">CII</option>
-          <option value="UBL">UBL 2.1</option>
-        </select>
-        <p id="exportFormats" class="small field-help" data-i18n="exportFormats">Für ZUGFeRD-PDF EN 16931 wählen. Wenn der Empfänger eine XRechnung verlangt, XRechnung 3.0 wählen und als XML exportieren.</p>
-        <label for="invNumber" data-i18n="invoiceNumber">Rechnungsnummer*</label>
-        <div class="row"><input id="invNumber" placeholder="RE-2026-0001" aria-describedby="numberHelp" required/><button id="btnRememberNr" class="ghost" data-i18n="rememberNumber">Merken</button></div>
-        <p id="numberHelp" class="small field-help" data-i18n="numberHelp">„Nächste Nr.“ erhöht die eingegebene Nummer. Bei leerem Feld zählt sie ab der zuletzt gemerkten Nummer weiter.</p>
-        <label for="invDate" data-i18n="invoiceDate">Rechnungsdatum*</label>
-        <input id="invDate" type="date" required/>
-        <label for="dueDate" data-i18n="dueDate">Fälligkeitsdatum</label>
-        <input id="dueDate" type="date" aria-describedby="paymentRequirements"/>
-        <label for="currency" data-i18n="currency">Währung*</label>
-        <select id="currency" required>
-          <option>EUR</option><option>USD</option><option>GBP</option><option>CHF</option>
-        </select>
-        <label for="orderRef" data-i18n="orderReference">Bestell-/Auftragsreferenz</label>
-        <input id="orderRef" placeholder="PO-12345"/>
-        <label for="buyerRef" data-i18n="buyerReference">Käuferreferenz</label>
-        <input id="buyerRef" placeholder="z. B. Leitweg-ID" data-i18n-placeholder="buyerRefExample" aria-describedby="xrechnungRequirements"/>
-        <label for="businessProcess" data-i18n="businessProcess">Geschäftsprozess</label>
-        <input id="businessProcess" placeholder="Kennung laut Empfänger" data-i18n-placeholder="businessProcessExample" aria-describedby="xrechnungRequirements"/>
-        <label for="supplyDate" data-i18n="supplyDate">Liefer-/Leistungsdatum*</label>
-        <input id="supplyDate" type="date" required/>
-        <label for="notes" data-i18n="notes">Hinweise</label>
-        <textarea id="notes" rows="2"></textarea>
-        <p id="xrechnungRequirements" class="small field-help" data-i18n="xrechnungHelp">XRechnung benötigt eine Käuferreferenz, eine Geschäftsprozesskennung, den Verkäuferkontakt und elektronische Adressen mit Adressschema für beide Parteien.</p>
-      </div>
-    </div>
+    <div class="form-columns">
+      <div class="form-column">
 
-    <!-- Seller -->
-    <div class="card" data-invoice-fields>
-      <h2 class="card-heading" data-i18n="seller">Verkäufer</h2>
-      <div class="master-data" data-master-data>
-        <h3 class="subsection-heading" data-i18n="companyProfiles">Firmenprofile</h3>
-        <div class="master-picker">
-          <div>
-            <label for="companySearch" data-i18n="companySearch">Firmenprofile suchen</label>
-            <input id="companySearch" type="search" aria-controls="companySelect"/>
+        <!-- Header / Invoice meta -->
+        <section class="card invoice-card" role="group" aria-labelledby="invoiceDetails" data-invoice-fields>
+          <h2 id="invoiceDetails" class="card-heading" tabindex="-1" data-i18n="invoiceDetails">Rechnungsdaten</h2>
+          <div class="kv">
+            <label for="profile" data-i18n="invoiceProfile">Rechnungsprofil</label>
+            <select id="profile" aria-describedby="exportFormats">
+              <option value="EN16931">EN 16931</option>
+              <option value="XRECHNUNG">XRechnung 3.0</option>
+            </select>
+            <p id="exportFormats" class="small field-help" data-i18n="exportFormats">Für ZUGFeRD-PDF EN 16931 wählen. Wenn der Empfänger eine XRechnung verlangt, XRechnung 3.0 wählen und als XML exportieren.</p>
+            <label for="invNumber" class="label-top" data-i18n="invoiceNumber">Rechnungsnummer*</label>
+            <div class="field-stack">
+              <input id="invNumber" placeholder="RE-2026-0001" aria-describedby="numberHelp" required/>
+              <div class="field-actions">
+                <button id="btnNextNr" class="ghost compact" type="button" data-i18n="nextNumber">Nächste Nr.</button>
+                <button id="btnRememberNr" class="ghost compact" type="button" data-i18n="rememberNumber">Merken</button>
+              </div>
+            </div>
+            <p id="numberHelp" class="small field-help" data-i18n="numberHelp">„Nächste Nr.“ erhöht die eingegebene Nummer. Bei leerem Feld zählt sie ab der zuletzt gemerkten Nummer weiter.</p>
+            <label for="invDate" data-i18n="invoiceDate">Rechnungsdatum*</label>
+            <input id="invDate" type="date" required/>
+            <label for="currency" data-i18n="currency">Währung*</label>
+            <select id="currency" required>
+              <option>EUR</option><option>USD</option><option>GBP</option><option>CHF</option>
+            </select>
+            <label for="supplyDate" class="label-top" data-i18n="supplyDate">Liefer-/Leistungsdatum*</label>
+            <div class="field-stack">
+              <input id="supplyDate" type="date" required/>
+              <div class="field-actions">
+                <button class="ghost compact" type="button" data-copy-invoice-date data-i18n="sameAsInvoiceDate">Wie Rechnungsdatum</button>
+              </div>
+            </div>
           </div>
-          <div>
-            <label for="companySelect" data-i18n="companySelectLabel">Firmenprofil</label>
-            <select id="companySelect"><option value="" data-i18n="selectCompany">— Firma wählen —</option></select>
-          </div>
-        </div>
-        <button id="btnLoadCompany" class="ghost" data-i18n="applyCompany" disabled>Profil übernehmen</button>
-        <details>
-          <summary data-i18n="saveCompanyLabel">Firmenprofil speichern</summary>
-          <p class="small" data-i18n="companyHelp">Gespeichert werden die aktuellen Verkäufer- und Zahlungsdaten.</p>
-          <label for="companyProfileName" data-i18n="companyProfileName">Profilbezeichnung</label>
-          <input id="companyProfileName" data-i18n-placeholder="profileNameExample" placeholder="Leer verwendet den Firmennamen"/>
-          <label for="companyDefaultTemplate" data-i18n="defaultTemplate">Standardvorlage</label>
-          <select id="companyDefaultTemplate"><option value="" data-i18n="noDefault">— kein Standard —</option></select>
-          <div class="row"><input type="checkbox" id="companyAutoApplyTemplate"/><label for="companyAutoApplyTemplate" data-i18n="autoApply">Beim Laden automatisch anwenden</label></div>
-          <div class="actions">
-            <button id="btnSaveCompany" class="ghost" data-i18n="saveNewMaster">Neu speichern</button>
-            <button id="btnUpdateCompany" class="ghost" data-i18n="updateMaster" disabled>Auswahl aktualisieren</button>
-            <button id="btnDelCompany" class="red" aria-label="Firmenprofil löschen" data-i18n-aria-label="deleteCompanyLabel" data-i18n="delete" disabled>Löschen</button>
-          </div>
-        </details>
-        <details>
-          <summary data-i18n="masterFileActions">Sichern und importieren</summary>
-          <p class="small" data-i18n="masterFileHelp">Nur diese Stammdatenart als JSON sichern oder ergänzen.</p>
-          <div class="actions">
-            <button type="button" id="masterExport-companies" class="ghost" data-i18n="masterFileExport">JSON sichern</button>
-            <button type="button" id="masterImport-companies" class="ghost" data-i18n="masterFileImport">JSON importieren</button>
-            <input type="file" id="masterFile-companies" accept=".json,application/json" hidden/>
-          </div>
-        </details>
-        <p id="masterTransferStatus-companies" class="operation-status" role="status" aria-atomic="true"></p>
-        <p id="activeCompany" class="operation-status" role="status" aria-atomic="true"></p>
-      </div>
-      <div class="kv">
-        <label for="sellerName" data-i18n="sellerName">Verkäufer – Name*</label><input id="sellerName" autocomplete="section-seller organization" required/>
-        <label for="sellerStreet" data-i18n="sellerStreet">Verkäufer – Straße*</label><input id="sellerStreet" autocomplete="section-seller address-line1" required/>
-        <label for="sellerZip" data-i18n="sellerZip">Verkäufer – PLZ*</label><input id="sellerZip" autocomplete="section-seller postal-code" required/>
-        <label for="sellerCity" data-i18n="sellerCity">Verkäufer – Ort*</label><input id="sellerCity" autocomplete="section-seller address-level2" required/>
-        <label for="sellerCountry" data-i18n="sellerCountry">Verkäufer – Ländercode*</label><input id="sellerCountry" autocomplete="section-seller country" list="countryCodes" maxlength="2" value="DE" required/>
-        <label for="sellerVAT" data-i18n="sellerVat">Verkäufer – USt-IdNr.</label><input id="sellerVAT" aria-describedby="sellerTaxRequirements"/>
-        <label for="sellerFC" data-i18n="sellerTaxNumber">Verkäufer – Steuernummer</label><input id="sellerFC" aria-describedby="sellerTaxRequirements"/>
-        <label for="sellerIdentifier" data-i18n="sellerId">Verkäuferkennung</label><input id="sellerIdentifier" aria-describedby="sellerTaxRequirements"/>
-        <label for="sellerReg" data-i18n="sellerRegistration">Registerkennung des Verkäufers</label><input id="sellerReg" placeholder="HRB 123456" aria-describedby="sellerTaxRequirements"/>
-        <label for="sellerContactName" data-i18n="sellerContact">Verkäufer – Kontaktname</label><input id="sellerContactName" aria-describedby="xrechnungRequirements"/>
-        <label for="sellerEmail" data-i18n="sellerEmail">Verkäufer – Kontakt-E-Mail</label><input id="sellerEmail" type="email" aria-describedby="xrechnungRequirements"/>
-        <label for="sellerPhone" data-i18n="sellerPhone">Verkäufer – Kontakttelefon</label><input id="sellerPhone" type="tel" aria-describedby="xrechnungRequirements"/>
-        <label for="sellerEndpointId" data-i18n="sellerElectronicAddress">Verkäufer – elektronische Adresse</label><input id="sellerEndpointId" aria-describedby="xrechnungRequirements"/>
-        <label for="sellerEndpointScheme" data-i18n="sellerAddressScheme">Verkäufer – Adressschema</label><input id="sellerEndpointScheme" list="addressSchemes" placeholder="z. B. EM oder 0204" data-i18n-placeholder="schemeExample" aria-describedby="xrechnungRequirements"/>
-        <p id="sellerTaxRequirements" class="small field-help" data-i18n="sellerTaxHelp">Ohne USt-IdNr. sind die Steuernummer und entweder die Verkäuferkennung oder die Registerkennung erforderlich.</p>
-      </div>
-      <hr/>
-      <div class="row management-actions">
-        <button id="btnSaveDefaults" class="ghost" data-i18n="saveDefaults">Als Standard speichern</button>
-        <button id="btnLoadDefaults" class="ghost" data-i18n="loadDefaults">Standard laden</button>
-        <button id="btnClearDefaults" class="red" data-i18n="deleteDefaults">Standard löschen</button>
-      </div>
-      <hr/>
-      <div style="margin-top:8px">
-        <h3 class="subsection-heading" data-i18n="invoiceTemplates">Rechnungsvorlagen</h3>
-        <div class="row management-actions">
-          <select id="templateSelect" aria-label="Rechnungsvorlage" data-i18n-aria-label="templateSelectLabel"><option value="" data-i18n="selectTemplate">— Vorlage wählen —</option></select>
-          <button id="btnLoadTemplate" class="ghost" aria-label="Vorlage laden" data-i18n-aria-label="loadTemplateLabel" data-i18n="load">Laden</button>
-          <button id="btnPreviewTemplate" class="ghost" aria-label="Vorschau der Vorlage" data-i18n-aria-label="previewTemplateLabel" data-i18n="preview">Vorschau</button>
-          <button id="btnSaveTemplate" class="ghost" aria-label="Vorlage speichern" data-i18n-aria-label="saveTemplateLabel" data-i18n="save">Speichern</button>
-          <button id="btnDelTemplate" class="red" aria-label="Vorlage löschen" data-i18n-aria-label="deleteTemplateLabel" data-i18n="delete">Löschen</button>
-          <button id="btnExportTemplates" class="ghost" aria-label="Vorlagen exportieren" data-i18n-aria-label="exportTemplatesLabel" data-i18n="export">Export</button>
-          <button id="btnImportTemplates" class="ghost" aria-label="Vorlagen importieren" data-i18n-aria-label="importTemplatesLabel" data-i18n="import">Import</button>
-          <input type="file" id="uploadTemplates" accept="application/json" style="display:none"/>
-        </div>
-        <div class="row"><input type="checkbox" id="replaceTemplates"/><label for="replaceTemplates" data-i18n="replaceTemplates">Beim Import alle Vorlagen ersetzen</label></div>
-        <div class="small" style="margin-top:6px" data-i18n="templateHelp">Eine Rechnungsvorlage speichert die Angaben und Positionen als wiederverwendbaren Entwurf.</div>
-      </div>
-    </div>
+          <details class="form-details" data-xrechnung-fields>
+            <summary data-i18n="invoiceExtras">Referenzen und XML-Einstellungen</summary>
+            <div class="kv">
+              <label for="syntax" data-i18n="xmlSyntax">XML-Syntax</label>
+              <select id="syntax" aria-describedby="exportFormats">
+                <option value="CII">CII</option>
+                <option value="UBL">UBL 2.1</option>
+              </select>
+              <label for="orderRef" data-i18n="orderReference">Bestell-/Auftragsreferenz</label>
+              <input id="orderRef" placeholder="PO-12345"/>
+              <label for="buyerRef" data-i18n="buyerReference">Käuferreferenz</label>
+              <input id="buyerRef" placeholder="z. B. Leitweg-ID" data-i18n-placeholder="buyerRefExample" aria-describedby="xrechnungRequirements"/>
+              <label for="businessProcess" data-i18n="businessProcess">Geschäftsprozess</label>
+              <input id="businessProcess" placeholder="Kennung laut Empfänger" data-i18n-placeholder="businessProcessExample" aria-describedby="xrechnungRequirements"/>
+              <label for="notes" class="label-top" data-i18n="notes">Hinweise</label>
+              <textarea id="notes" rows="2"></textarea>
+              <p id="xrechnungRequirements" class="small field-help" data-i18n="xrechnungHelp">XRechnung benötigt eine Käuferreferenz, eine Geschäftsprozesskennung, den Verkäuferkontakt und elektronische Adressen mit Adressschema für beide Parteien.</p>
+            </div>
+          </details>
+          <details class="form-details">
+            <summary data-i18n="invoiceTemplates">Rechnungsvorlagen</summary>
+            <div class="template-manager">
+              <select id="templateSelect" aria-label="Rechnungsvorlage" data-i18n-aria-label="templateSelectLabel"><option value="" data-i18n="selectTemplate">— Vorlage wählen —</option></select>
+              <div class="actions">
+                <button id="btnLoadTemplate" class="ghost" type="button" aria-label="Vorlage laden" data-i18n-aria-label="loadTemplateLabel" data-i18n="load">Laden</button>
+                <button id="btnPreviewTemplate" class="ghost" type="button" aria-label="Vorschau der Vorlage" data-i18n-aria-label="previewTemplateLabel" data-i18n="preview">Vorschau</button>
+                <button id="btnDelTemplate" class="red" type="button" aria-label="Vorlage löschen" data-i18n-aria-label="deleteTemplateLabel" data-i18n="delete">Löschen</button>
+              </div>
+              <hr/>
+              <div class="actions">
+                <button id="btnSaveTemplate" class="ghost" type="button" aria-label="Vorlage speichern" data-i18n-aria-label="saveTemplateLabel" data-i18n="saveAsTemplate">Entwurf als Vorlage speichern</button>
+                <button id="btnExportTemplates" class="ghost" type="button" aria-label="Vorlagen exportieren" data-i18n-aria-label="exportTemplatesLabel" data-i18n="export">Export</button>
+                <button id="btnImportTemplates" class="ghost" type="button" aria-label="Vorlagen importieren" data-i18n-aria-label="importTemplatesLabel" data-i18n="import">Import</button>
+                <input type="file" id="uploadTemplates" accept="application/json" hidden/>
+              </div>
+              <div class="row"><input type="checkbox" id="replaceTemplates"/><label for="replaceTemplates" data-i18n="replaceTemplates">Beim Import alle Vorlagen ersetzen</label></div>
+              <p class="small" data-i18n="templateHelp">Eine Rechnungsvorlage speichert die Angaben und Positionen als wiederverwendbaren Entwurf.</p>
+            </div>
+          </details>
+        </section>
 
-    <!-- Buyer + Address book -->
-    <div class="card" data-invoice-fields>
-      <h2 class="card-heading" data-i18n="buyer">Käufer</h2>
-      <div class="master-data" data-master-data>
-        <h3 class="subsection-heading" data-i18n="buyerContacts">Käuferkontakte</h3>
-        <div class="master-picker">
-          <div>
-            <label for="contactSearch" data-i18n="contactSearch">Käuferkontakte suchen</label>
-            <input id="contactSearch" type="search" aria-controls="contactSelect"/>
-          </div>
-          <div>
+        <!-- Buyer + Address book -->
+        <section class="card invoice-card" role="group" aria-labelledby="buyerHeading" data-invoice-fields data-label-prefix>
+          <h2 id="buyerHeading" class="card-heading" data-i18n="buyer">Käufer</h2>
+          <div class="quick-pick" id="contactQuickPick" data-master-data hidden>
+            <div class="quick-pick-search" data-quick-search hidden>
+              <label for="contactSearch" data-i18n="contactSearch">Käuferkontakte suchen</label>
+              <input id="contactSearch" type="search" aria-controls="contactSelect"/>
+            </div>
             <label for="contactSelect" data-i18n="contactSelectLabel">Käuferkontakt</label>
-            <select id="contactSelect"><option value="" data-i18n="selectBuyer">— Kontakt auswählen —</option></select>
+            <div class="quick-pick-row">
+              <select id="contactSelect"><option value="" data-i18n="selectBuyer">— Kontakt auswählen —</option></select>
+              <button id="btnLoadContact" class="ghost" type="button" data-i18n="applyContact" disabled>Kontakt übernehmen</button>
+            </div>
           </div>
-        </div>
-        <button id="btnLoadContact" class="ghost" data-i18n="applyContact" disabled>Kontakt übernehmen</button>
-        <details>
-          <summary data-i18n="saveContactLabel">Käuferkontakt speichern</summary>
-          <p id="contactRefHelp" class="small" data-i18n="contactRefHelp">Gespeichert werden die aktuellen Käuferdaten und diese feste Referenz. Beim Übernehmen wird auch die Käuferreferenz der Rechnung ersetzt.</p>
-          <label for="contactBuyerRef" data-i18n="contactBuyerRef">Feste Käuferreferenz (optional)</label>
-          <input id="contactBuyerRef" aria-describedby="contactRefHelp" placeholder="z. B. Leitweg-ID" data-i18n-placeholder="buyerRefExample"/>
-          <div class="actions">
-            <button id="btnSaveContact" class="ghost" data-i18n="saveNewMaster">Neu speichern</button>
-            <button id="btnUpdateContact" class="ghost" data-i18n="updateMaster" disabled>Auswahl aktualisieren</button>
-            <button id="btnDelContact" class="red" aria-label="Käuferkontakt löschen" data-i18n-aria-label="deleteContactLabel" data-i18n="delete" disabled>Löschen</button>
+          <div class="kv">
+            <label for="buyerName" data-i18n="buyerName">Name*</label><input id="buyerName" autocomplete="section-buyer organization" required/>
+            <label for="buyerStreet" data-i18n="buyerStreet">Straße*</label><input id="buyerStreet" autocomplete="section-buyer address-line1" required/>
+            <label for="buyerZip" data-i18n="buyerZip">PLZ*</label><input id="buyerZip" autocomplete="section-buyer postal-code" required/>
+            <label for="buyerCity" data-i18n="buyerCity">Ort*</label><input id="buyerCity" autocomplete="section-buyer address-level2" required/>
+            <label for="buyerCountry" data-i18n="buyerCountry">Ländercode*</label><input id="buyerCountry" autocomplete="section-buyer country" list="countryCodes" maxlength="2" value="DE" required/>
           </div>
-        </details>
-        <details>
-          <summary data-i18n="masterFileActions">Sichern und importieren</summary>
-          <p class="small" data-i18n="masterFileHelp">Nur diese Stammdatenart als JSON sichern oder ergänzen.</p>
-          <div class="actions">
-            <button type="button" id="masterExport-contacts" class="ghost" data-i18n="masterFileExport">JSON sichern</button>
-            <button type="button" id="masterImport-contacts" class="ghost" data-i18n="masterFileImport">JSON importieren</button>
-            <input type="file" id="masterFile-contacts" accept=".json,application/json" hidden/>
-          </div>
-        </details>
-        <p id="masterTransferStatus-contacts" class="operation-status" role="status" aria-atomic="true"></p>
-        <p id="contactStatus" class="operation-status" role="status" aria-atomic="true"></p>
+          <details class="form-details">
+            <summary data-i18n="buyerExtraDetails">Steuer- und Kontaktdaten</summary>
+            <div class="kv">
+              <label for="buyerVAT" data-i18n="buyerVat">USt-IdNr.</label><input id="buyerVAT"/>
+              <label for="buyerIdentifier" data-i18n="buyerId">Kennung</label><input id="buyerIdentifier"/>
+              <label for="buyerReg" data-i18n="buyerRegistration">Registerkennung</label><input id="buyerReg"/>
+              <label for="buyerContactName" data-i18n="buyerContactName">Kontaktname</label><input id="buyerContactName" autocomplete="section-buyer name"/>
+              <label for="buyerEmail" data-i18n="buyerEmail">Kontakt-E-Mail</label><input id="buyerEmail" type="email" autocomplete="section-buyer email"/>
+              <label for="buyerPhone" data-i18n="buyerPhone">Kontakttelefon</label><input id="buyerPhone" type="tel" autocomplete="section-buyer tel"/>
+            </div>
+          </details>
+          <details class="form-details" data-xrechnung-fields>
+            <summary data-i18n="buyerElectronicDetails">Elektronische Adresse</summary>
+            <div class="kv">
+              <label for="buyerEndpointId" data-i18n="buyerElectronicAddress">Elektronische Adresse</label><input id="buyerEndpointId" aria-describedby="xrechnungRequirements"/>
+              <label for="buyerEndpointScheme" data-i18n="buyerAddressScheme">Adressschema</label><input id="buyerEndpointScheme" list="addressSchemes" placeholder="z. B. EM oder 0204" data-i18n-placeholder="schemeExample" aria-describedby="xrechnungRequirements"/>
+            </div>
+          </details>
+          <details class="form-details">
+            <summary data-i18n="buyerContactManagement">Käuferkontakte verwalten</summary>
+            <div class="master-data" data-master-data>
+              <details>
+                <summary data-i18n="saveContactLabel">Käuferkontakt speichern</summary>
+                <p id="contactRefHelp" class="small" data-i18n="contactRefHelp">Gespeichert werden die aktuellen Käuferdaten und diese feste Referenz. Beim Übernehmen wird auch die Käuferreferenz der Rechnung ersetzt.</p>
+                <label for="contactBuyerRef" data-i18n="contactBuyerRef">Feste Käuferreferenz (optional)</label>
+                <input id="contactBuyerRef" aria-describedby="contactRefHelp" placeholder="z. B. Leitweg-ID" data-i18n-placeholder="buyerRefExample"/>
+                <div class="actions">
+                  <button id="btnSaveContact" class="ghost" type="button" data-i18n="saveNewMaster">Neu speichern</button>
+                  <button id="btnUpdateContact" class="ghost" type="button" data-i18n="updateMaster" disabled>Auswahl aktualisieren</button>
+                  <button id="btnDelContact" class="red" type="button" aria-label="Käuferkontakt löschen" data-i18n-aria-label="deleteContactLabel" data-i18n="delete" disabled>Löschen</button>
+                </div>
+              </details>
+              <details>
+                <summary data-i18n="masterFileActions">Sichern und importieren</summary>
+                <p class="small" data-i18n="masterFileHelp">Nur diese Stammdatenart als JSON sichern oder ergänzen.</p>
+                <div class="actions">
+                  <button type="button" id="masterExport-contacts" class="ghost" data-i18n="masterFileExport">JSON sichern</button>
+                  <button type="button" id="masterImport-contacts" class="ghost" data-i18n="masterFileImport">JSON importieren</button>
+                  <input type="file" id="masterFile-contacts" accept=".json,application/json" hidden/>
+                </div>
+              </details>
+              <p id="masterTransferStatus-contacts" class="operation-status" role="status" aria-atomic="true"></p>
+              <p id="contactStatus" class="operation-status" role="status" aria-atomic="true"></p>
+            </div>
+          </details>
+          <input id="buyerFC" type="hidden"/>
+        </section>
       </div>
-      <div class="kv">
-        <label for="buyerName" data-i18n="buyerName">Käufer – Name*</label><input id="buyerName" autocomplete="section-buyer organization" required/>
-        <label for="buyerStreet" data-i18n="buyerStreet">Käufer – Straße*</label><input id="buyerStreet" autocomplete="section-buyer address-line1" required/>
-        <label for="buyerZip" data-i18n="buyerZip">Käufer – PLZ*</label><input id="buyerZip" autocomplete="section-buyer postal-code" required/>
-        <label for="buyerCity" data-i18n="buyerCity">Käufer – Ort*</label><input id="buyerCity" autocomplete="section-buyer address-level2" required/>
-        <label for="buyerCountry" data-i18n="buyerCountry">Käufer – Ländercode*</label><input id="buyerCountry" autocomplete="section-buyer country" list="countryCodes" maxlength="2" value="DE" required/>
-        <label for="buyerVAT" data-i18n="buyerVat">Käufer – USt-IdNr.</label><input id="buyerVAT"/>
-        <label for="buyerIdentifier" data-i18n="buyerId">Käuferkennung</label><input id="buyerIdentifier"/>
-        <label for="buyerReg" data-i18n="buyerRegistration">Registerkennung des Käufers</label><input id="buyerReg"/>
-        <label for="buyerContactName" data-i18n="buyerContactName">Käufer – Kontaktname</label><input id="buyerContactName" autocomplete="section-buyer name"/>
-        <label for="buyerEmail" data-i18n="buyerEmail">Käufer – Kontakt-E-Mail</label><input id="buyerEmail" type="email" autocomplete="section-buyer email"/>
-        <label for="buyerPhone" data-i18n="buyerPhone">Käufer – Kontakttelefon</label><input id="buyerPhone" type="tel" autocomplete="section-buyer tel"/>
-        <label for="buyerEndpointId" data-i18n="buyerElectronicAddress">Käufer – elektronische Adresse</label><input id="buyerEndpointId" aria-describedby="xrechnungRequirements"/>
-        <label for="buyerEndpointScheme" data-i18n="buyerAddressScheme">Käufer – Adressschema</label><input id="buyerEndpointScheme" list="addressSchemes" placeholder="z. B. EM oder 0204" data-i18n-placeholder="schemeExample" aria-describedby="xrechnungRequirements"/>
-      </div>
-      <input id="buyerFC" type="hidden"/>
-    </div>
 
-    <!-- Payment -->
-    <div class="card" data-invoice-fields>
-      <h2 class="card-heading" data-i18n="payment">Zahlung</h2>
-      <div class="kv">
-        <label for="payType" data-i18n="paymentMethod">Zahlungsart</label>
-        <select id="payType" aria-describedby="paymentRequirements">
-          <option value="58" data-i18n="sepa">SEPA-Überweisung (58)</option>
-          <option value="30" data-i18n="bankTransfer">Überweisung (30)</option>
-          <option value="10" data-i18n="cash">Barzahlung (10)</option>
-        </select>
-        <label for="iban">IBAN</label><input id="iban" placeholder="DE…" aria-describedby="paymentRequirements"/>
-        <label for="bic">BIC</label><input id="bic" placeholder="GENODEF1S01"/>
-        <label for="accHolder" data-i18n="accountHolder">Kontoinhaber</label><input id="accHolder"/>
-        <label for="payTerms" data-i18n="paymentTerms">Zahlungsbedingungen</label><textarea id="payTerms" rows="2" placeholder="z. B. 14 Tage netto" data-i18n-placeholder="termsExample" aria-describedby="paymentRequirements"></textarea>
-        <label for="remittance" data-i18n="remittance">Verwendungszweck</label><input id="remittance" placeholder="Rechnung RE-…" data-i18n-placeholder="paymentReferenceExample"/>
-        <p id="paymentRequirements" class="small field-help" data-i18n="paymentHelp">Fälligkeitsdatum oder Zahlungsbedingungen angeben. Für Überweisungen ist eine gültige IBAN erforderlich.</p>
-      </div>
-    </div>
+      <div class="form-column">
 
-    <!-- PDF appearance -->
-    <div class="card" data-invoice-fields>
-      <h2 class="card-heading" data-i18n="pdfAppearance">PDF-Gestaltung</h2>
-      <div class="kv">
-        <label for="pdfLanguage" data-i18n="pdfLanguage">Sprache im PDF</label>
-        <select id="pdfLanguage">
-          <option value="de" lang="de">Deutsch</option>
-          <option value="en" lang="en">English</option>
-        </select>
-        <label for="accentColor" data-i18n="accent">Akzentfarbe</label>
-        <input id="accentColor" type="color" value="#0066cc"/>
-      </div>
-      <hr/>
-      <div class="logoBox">
-        <div class="logoPreview" id="logoPreview"><span class="small" data-i18n="noLogo">Kein Logo</span></div>
-        <div class="flexcol">
-          <label for="logoFile" data-i18n="logo">Logo</label>
-          <input type="file" id="logoFile" accept="image/png,image/jpeg" aria-describedby="logoHelp"/>
-          <p class="small" id="logoHelp" data-i18n="logoHelp">PNG oder JPEG, bis 192 KiB und 4 Millionen Bildpunkte.</p>
-          <div class="row">
-            <button id="btnSaveLogo" class="ghost" data-i18n="saveLogo">Logo speichern (Standard)</button>
-            <button id="btnClearLogo" class="red" data-i18n="removeLogo">Logo entfernen</button>
+        <!-- Seller -->
+        <section class="card invoice-card" role="group" aria-labelledby="sellerHeading" data-invoice-fields data-label-prefix>
+          <h2 id="sellerHeading" class="card-heading" data-i18n="seller">Verkäufer</h2>
+          <div class="quick-pick" id="companyQuickPick" data-master-data hidden>
+            <div class="quick-pick-search" data-quick-search hidden>
+              <label for="companySearch" data-i18n="companySearch">Firmenprofile suchen</label>
+              <input id="companySearch" type="search" aria-controls="companySelect"/>
+            </div>
+            <label for="companySelect" data-i18n="companySelectLabel">Firmenprofil</label>
+            <div class="quick-pick-row">
+              <select id="companySelect"><option value="" data-i18n="selectCompany">— Firma wählen —</option></select>
+              <button id="btnLoadCompany" class="ghost" type="button" data-i18n="applyCompany" disabled>Profil übernehmen</button>
+            </div>
           </div>
-        </div>
+          <div class="kv">
+            <label for="sellerName" data-i18n="sellerName">Name*</label><input id="sellerName" autocomplete="section-seller organization" required/>
+            <label for="sellerStreet" data-i18n="sellerStreet">Straße*</label><input id="sellerStreet" autocomplete="section-seller address-line1" required/>
+            <label for="sellerZip" data-i18n="sellerZip">PLZ*</label><input id="sellerZip" autocomplete="section-seller postal-code" required/>
+            <label for="sellerCity" data-i18n="sellerCity">Ort*</label><input id="sellerCity" autocomplete="section-seller address-level2" required/>
+            <label for="sellerCountry" data-i18n="sellerCountry">Ländercode*</label><input id="sellerCountry" autocomplete="section-seller country" list="countryCodes" maxlength="2" value="DE" required/>
+            <label for="sellerVAT" data-i18n="sellerVat">USt-IdNr.</label><input id="sellerVAT" aria-describedby="sellerTaxRequirements"/>
+          </div>
+          <details class="form-details">
+            <summary data-i18n="sellerTaxDetails">Steuer- und Registerdaten</summary>
+            <div class="kv">
+              <label for="sellerFC" data-i18n="sellerTaxNumber">Steuernummer</label><input id="sellerFC" aria-describedby="sellerTaxRequirements"/>
+              <label for="sellerIdentifier" data-i18n="sellerId">Kennung</label><input id="sellerIdentifier" aria-describedby="sellerTaxRequirements"/>
+              <label for="sellerReg" data-i18n="sellerRegistration">Registerkennung</label><input id="sellerReg" placeholder="HRB 123456" aria-describedby="sellerTaxRequirements"/>
+              <p id="sellerTaxRequirements" class="small field-help" data-i18n="sellerTaxHelp">Ohne USt-IdNr. sind die Steuernummer und entweder die Verkäuferkennung oder die Registerkennung erforderlich.</p>
+            </div>
+          </details>
+          <details class="form-details" data-xrechnung-fields>
+            <summary data-i18n="sellerElectronicDetails">Kontakt und elektronische Adresse</summary>
+            <div class="kv">
+              <label for="sellerContactName" data-i18n="sellerContact">Kontaktname</label><input id="sellerContactName" aria-describedby="xrechnungRequirements"/>
+              <label for="sellerEmail" data-i18n="sellerEmail">Kontakt-E-Mail</label><input id="sellerEmail" type="email" aria-describedby="xrechnungRequirements"/>
+              <label for="sellerPhone" data-i18n="sellerPhone">Kontakttelefon</label><input id="sellerPhone" type="tel" aria-describedby="xrechnungRequirements"/>
+              <label for="sellerEndpointId" data-i18n="sellerElectronicAddress">Elektronische Adresse</label><input id="sellerEndpointId" aria-describedby="xrechnungRequirements"/>
+              <label for="sellerEndpointScheme" data-i18n="sellerAddressScheme">Adressschema</label><input id="sellerEndpointScheme" list="addressSchemes" placeholder="z. B. EM oder 0204" data-i18n-placeholder="schemeExample" aria-describedby="xrechnungRequirements"/>
+            </div>
+          </details>
+          <details class="form-details">
+            <summary data-i18n="companyProfiles">Firmenprofile und Standardwerte</summary>
+            <div class="master-data" data-master-data>
+              <details>
+                <summary data-i18n="saveCompanyLabel">Firmenprofil speichern</summary>
+                <p class="small" data-i18n="companyHelp">Gespeichert werden die aktuellen Verkäufer- und Zahlungsdaten.</p>
+                <label for="companyProfileName" data-i18n="companyProfileName">Profilbezeichnung</label>
+                <input id="companyProfileName" data-i18n-placeholder="profileNameExample" placeholder="Leer verwendet den Firmennamen"/>
+                <label for="companyDefaultTemplate" data-i18n="defaultTemplate">Standardvorlage</label>
+                <select id="companyDefaultTemplate"><option value="" data-i18n="noDefault">— kein Standard —</option></select>
+                <div class="row"><input type="checkbox" id="companyAutoApplyTemplate"/><label for="companyAutoApplyTemplate" data-i18n="autoApply">Beim Laden automatisch anwenden</label></div>
+                <div class="actions">
+                  <button id="btnSaveCompany" class="ghost" type="button" data-i18n="saveNewMaster">Neu speichern</button>
+                  <button id="btnUpdateCompany" class="ghost" type="button" data-i18n="updateMaster" disabled>Auswahl aktualisieren</button>
+                  <button id="btnDelCompany" class="red" type="button" aria-label="Firmenprofil löschen" data-i18n-aria-label="deleteCompanyLabel" data-i18n="delete" disabled>Löschen</button>
+                </div>
+              </details>
+              <details>
+                <summary data-i18n="masterFileActions">Sichern und importieren</summary>
+                <p class="small" data-i18n="masterFileHelp">Nur diese Stammdatenart als JSON sichern oder ergänzen.</p>
+                <div class="actions">
+                  <button type="button" id="masterExport-companies" class="ghost" data-i18n="masterFileExport">JSON sichern</button>
+                  <button type="button" id="masterImport-companies" class="ghost" data-i18n="masterFileImport">JSON importieren</button>
+                  <input type="file" id="masterFile-companies" accept=".json,application/json" hidden/>
+                </div>
+              </details>
+              <p id="masterTransferStatus-companies" class="operation-status" role="status" aria-atomic="true"></p>
+              <p id="activeCompany" class="operation-status" role="status" aria-atomic="true"></p>
+            </div>
+            <div class="row management-actions">
+              <button id="btnSaveDefaults" class="ghost" type="button" data-i18n="saveDefaults">Als Standard speichern</button>
+              <button id="btnLoadDefaults" class="ghost" type="button" data-i18n="loadDefaults">Standard laden</button>
+              <button id="btnClearDefaults" class="red" type="button" data-i18n="deleteDefaults">Standard löschen</button>
+            </div>
+          </details>
+        </section>
+
+        <!-- Payment -->
+        <section class="card invoice-card" role="group" aria-labelledby="paymentHeading" data-invoice-fields>
+          <h2 id="paymentHeading" class="card-heading" data-i18n="payment">Zahlung</h2>
+          <div class="kv">
+            <label for="payType" data-i18n="paymentMethod">Zahlungsart</label>
+            <select id="payType" aria-describedby="paymentRequirements">
+              <option value="58" data-i18n="sepa">SEPA-Überweisung (58)</option>
+              <option value="30" data-i18n="bankTransfer">Überweisung (30)</option>
+              <option value="10" data-i18n="cash">Barzahlung (10)</option>
+            </select>
+            <label for="iban" class="label-top">IBAN</label>
+            <div class="field-stack">
+              <input id="iban" placeholder="DE…" autocomplete="off" spellcheck="false" aria-describedby="paymentRequirements ibanError"/>
+              <p id="ibanError" class="field-error" hidden></p>
+            </div>
+            <label for="dueDate" class="label-top" data-i18n="dueDate">Fälligkeitsdatum</label>
+            <div class="field-stack">
+              <input id="dueDate" type="date" aria-describedby="paymentRequirements"/>
+              <div class="field-actions">
+                <button class="ghost compact" type="button" data-add-days="14" data-i18n="dueIn14">+14 Tage</button>
+                <button class="ghost compact" type="button" data-add-days="30" data-i18n="dueIn30">+30 Tage</button>
+              </div>
+            </div>
+            <label for="payTerms" class="label-top" data-i18n="paymentTerms">Zahlungsbedingungen</label><textarea id="payTerms" rows="2" placeholder="z. B. 14 Tage netto" data-i18n-placeholder="termsExample" aria-describedby="paymentRequirements"></textarea>
+            <p id="paymentRequirements" class="small field-help" data-i18n="paymentHelp">Fälligkeitsdatum oder Zahlungsbedingungen angeben. Für Überweisungen ist eine gültige IBAN erforderlich.</p>
+          </div>
+          <details class="form-details">
+            <summary data-i18n="paymentExtras">Bank- und Zahlungsdetails</summary>
+            <div class="kv">
+              <label for="bic">BIC</label><input id="bic" placeholder="GENODEF1S01" autocomplete="off"/>
+              <label for="accHolder" data-i18n="accountHolder">Kontoinhaber</label><input id="accHolder"/>
+              <label for="remittance" data-i18n="remittance">Verwendungszweck</label><input id="remittance" placeholder="Rechnung RE-…" data-i18n-placeholder="paymentReferenceExample"/>
+            </div>
+          </details>
+        </section>
       </div>
     </div>
 
@@ -283,111 +351,140 @@
     </div>
 
     <!-- Items -->
-    <div class="card card-wide">
-      <div class="row positions-heading">
+    <section class="card card-wide" aria-labelledby="positionsHeading">
+      <div class="card-header">
         <h2 class="card-heading" id="positionsHeading" tabindex="-1" data-i18n="lineItems">Rechnungspositionen</h2>
-        <div class="actions">
-          <button id="addRow" class="ghost" data-i18n="addLine">Position hinzufügen</button>
-          <button id="clearRows" class="red" data-i18n="clearLines">Alle löschen</button>
-        </div>
+        <button id="clearRows" class="red" type="button" data-i18n="clearLines">Alle löschen</button>
       </div>
-      <p class="small"><span data-i18n="unitHelp">Einheiten nach UNECE, z. B. C62 für Stück oder HUR für Stunde. Standard</span> <code id="unitDefaultLbl">C62</code>.</p>
-      <p id="taxRequirements" class="small" data-i18n="taxHelp">Für Steuerbefreiung und Reverse Charge sind 0 % und ein Befreiungsgrund erforderlich. Reverse Charge erfordert die USt-IdNr. beider Parteien.</p>
-      <p class="small positions-scroll-help" data-i18n="scrollHelp">Die Tabelle lässt sich horizontal scrollen.</p>
-      <div class="items-scroll" role="region" aria-labelledby="positionsHeading" tabindex="0">
-        <table class="table" id="items" role="table">
-          <thead role="rowgroup">
-            <tr role="row">
-              <th role="columnheader" scope="col" data-i18n="position">Pos</th>
-              <th role="columnheader" scope="col" data-i18n="itemName">Produktname*</th>
-              <th role="columnheader" scope="col" data-i18n="itemDescription">Beschreibung</th>
-              <th role="columnheader" scope="col" data-i18n="quantity">Menge*</th>
-              <th role="columnheader" scope="col" data-i18n="unit">Einheit*</th>
-              <th role="columnheader" scope="col" data-i18n="price">Einzelpreis (netto)*</th>
-              <th role="columnheader" scope="col" data-i18n="taxCategory">USt-Kategorie</th>
-              <th role="columnheader" scope="col" data-i18n="taxRate">USt-%</th>
-              <th role="columnheader" scope="col" data-field="vatExemptionReason" data-i18n="taxExemption">USt-Befreiungsgrund</th>
-              <th role="columnheader" scope="col" data-i18n="discount">Zeilenrabatt</th>
-              <th role="columnheader" scope="col" data-i18n="net">Netto</th>
-              <th role="columnheader" scope="col" data-i18n="tax">MwSt</th>
-              <th role="columnheader" scope="col" data-i18n="gross">Brutto</th>
-              <th role="columnheader" scope="col" data-i18n="actions">Aktion</th>
-            </tr>
-          </thead>
-          <tbody role="rowgroup"></tbody>
-        </table>
+      <div class="hint-list">
+        <p class="small"><span data-i18n="unitHelp">Einheiten nach UNECE, z. B. C62 für Stück oder HUR für Stunde. Standard</span> <code id="unitDefaultLbl">C62</code>.</p>
+        <p id="taxRequirements" class="small" data-i18n="taxHelp">Für Steuerbefreiung und Reverse Charge sind 0 % und ein Befreiungsgrund erforderlich. Reverse Charge erfordert die USt-IdNr. beider Parteien.</p>
       </div>
-      <div class="row" style="justify-content:flex-end;gap:10px;margin-top:8px">
+      <table class="table" id="items" role="table" aria-labelledby="positionsHeading">
+        <thead role="rowgroup">
+          <tr role="row">
+            <th role="columnheader" scope="col" data-i18n="position">Pos</th>
+            <th role="columnheader" scope="col" data-i18n="itemName">Produktname*</th>
+            <th role="columnheader" scope="col" data-i18n="quantity">Menge*</th>
+            <th role="columnheader" scope="col" data-i18n="unit">Einheit*</th>
+            <th role="columnheader" scope="col" data-i18n="price">Einzelpreis (netto)*</th>
+            <th role="columnheader" scope="col" data-i18n="discount">Zeilenrabatt</th>
+            <th role="columnheader" scope="col" data-i18n="itemDescription">Beschreibung</th>
+            <th role="columnheader" scope="col" data-i18n="taxCategory">USt-Kategorie</th>
+            <th role="columnheader" scope="col" data-i18n="taxRate">USt-%</th>
+            <th role="columnheader" scope="col" data-field="vatExemptionReason" data-i18n="taxExemption">USt-Befreiungsgrund</th>
+            <th role="columnheader" scope="col" data-i18n="lineAmounts">Beträge</th>
+            <th role="columnheader" scope="col" data-i18n="actions">Aktion</th>
+          </tr>
+        </thead>
+        <tbody role="rowgroup"></tbody>
+      </table>
+      <p id="noLines" class="empty-state" data-i18n="noLines" hidden>Noch keine Positionen.</p>
+      <div class="items-footer">
+        <button id="addRow" class="ghost add-line" type="button">
+          <svg viewBox="0 0 20 20" width="16" height="16" aria-hidden="true" focusable="false"><path d="M10 4v12M4 10h12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          <span data-i18n="addLine">Position hinzufügen</span>
+        </button>
         <div class="totalbox" id="totalsBox">
-          <strong data-i18n="draftTotals">Entwurfssummen</strong>
-          <div><span data-i18n="netTotal">Zwischensumme netto</span>: <span id="tNet">0,00</span> <span id="tCur"></span></div>
-          <div><span data-i18n="taxTotal">Steuern</span>: <span id="tTax">0,00</span> <span id="tCur2"></span></div>
-          <div><strong><span data-i18n="grossTotal">Gesamt brutto</span>: <span id="tGross">0,00</span> <span id="tCur3"></span></strong></div>
+          <strong class="totals-heading" data-i18n="draftTotals">Entwurfssummen</strong>
+          <div class="total-row"><span data-i18n="netTotal">Zwischensumme netto</span><span class="total-amount"><span id="tNet">0,00</span> <span id="tCur"></span></span></div>
+          <div id="taxRows" class="tax-rows"></div>
+          <div class="total-row total-gross"><span data-i18n="grossTotal">Gesamt brutto</span><span class="total-amount"><span id="tGross">0,00</span> <span id="tCur3"></span></span></div>
         </div>
       </div>
-    </div>
+    </section>
 
     <!-- Output / import-export -->
-    <div id="invoiceExport" class="card card-wide" tabindex="-1">
-      <h2 class="card-heading" tabindex="-1" data-i18n="invoiceExport">Rechnung exportieren</h2>
+    <section id="invoiceExport" class="card card-wide" tabindex="-1" aria-labelledby="exportHeading">
+      <h2 id="exportHeading" class="card-heading" data-i18n="invoiceExport">Rechnung exportieren</h2>
       <p id="exportProfileHelp" class="small">EN 16931 als CII-XML oder als ZUGFeRD-PDF.</p>
-      <div class="actions">
-        <button id="genXml" class="ghost" aria-describedby="exportProfileHelp" data-i18n="downloadXml">XML herunterladen</button>
-        <button id="genPdf" aria-describedby="exportProfileHelp" data-i18n="generatePdf">ZUGFeRD-PDF erstellen</button>
-        <button id="dlPdf" class="ghost" disabled data-i18n="downloadPdf">PDF herunterladen</button>
+      <div class="actions export-actions">
+        <button id="genPdf" type="button" aria-describedby="exportProfileHelp" data-i18n="generatePdf">ZUGFeRD-PDF erstellen</button>
+        <button id="dlPdf" class="ghost" type="button" disabled data-i18n="downloadPdf">PDF herunterladen</button>
+        <button id="genXml" class="ghost" type="button" aria-describedby="exportProfileHelp" data-i18n="downloadXml">XML herunterladen</button>
       </div>
       <p id="exportStatus" role="status" aria-atomic="true" tabindex="-1"></p>
-      <details id="xmlPreview" hidden>
+      <ul id="exportProblems" class="problem-list" hidden></ul>
+      <details id="xmlPreview" class="form-details" hidden>
         <summary data-i18n="showXml">Erzeugtes XML anzeigen</summary>
-        <pre id="xmlOut" style="white-space:pre-wrap;overflow:auto;max-height:340px;background:#0f172a;color:#e6edf3;padding:10px;border-radius:8px"></pre>
+        <pre id="xmlOut" class="xml-output"></pre>
       </details>
-      <div class="pdf-preview" id="pdfPreviewRow">
-        <iframe id="pdfPreview" title="PDF-Vorschau" data-i18n-title="pdfPreviewTitle"></iframe>
-        <p id="pdfPreviewPlaceholder" class="small" data-i18n="pdfPreviewPlaceholder">Hier erscheint das erzeugte PDF.</p>
-      </div>
-      <hr/>
-      <h2 class="card-heading" data-i18n="draftData">Entwurfsdaten</h2>
-      <div class="actions">
-        <button id="dlJson" class="ghost" data-i18n="exportJson">Entwurf als JSON exportieren</button>
-        <button id="dlCsv" class="ghost" data-i18n="exportCsv">Positionen als CSV exportieren</button>
-      </div>
-      <div class="row file-imports">
-        <label><span data-i18n="importJson">Entwurf als JSON importieren</span> <input type="file" id="uploadJson" accept=".json,application/json"/></label>
-        <label><span data-i18n="importCsv">Positionen als CSV importieren</span> <input type="file" id="uploadCsv" accept=".csv,text/csv"/></label>
-      </div>
-      <p id="csvImportStatus" class="operation-status" role="status" aria-atomic="true"></p>
-    </div>
+      <details id="pdfPreviewRow" class="form-details" hidden>
+        <summary data-i18n="pdfPreviewTitle">PDF-Vorschau</summary>
+        <div class="pdf-preview">
+          <iframe id="pdfPreview" title="PDF-Vorschau" data-i18n-title="pdfPreviewTitle"></iframe>
+        </div>
+      </details>
+      <!-- PDF appearance -->
+      <details class="form-details" data-invoice-fields>
+        <summary data-i18n="pdfAppearance">PDF-Gestaltung</summary>
+        <div class="kv">
+          <label for="pdfLanguage" data-i18n="pdfLanguage">Sprache im PDF</label>
+          <select id="pdfLanguage">
+            <option value="de" lang="de">Deutsch</option>
+            <option value="en" lang="en">English</option>
+          </select>
+          <label for="accentColor" data-i18n="accent">Akzentfarbe</label>
+          <input id="accentColor" type="color" value="#0066cc"/>
+        </div>
+        <hr/>
+        <div class="logoBox">
+          <div class="logoPreview" id="logoPreview"><span class="small" data-i18n="noLogo">Kein Logo</span></div>
+          <div class="flexcol">
+            <label for="logoFile" data-i18n="logo">Logo</label>
+            <input type="file" id="logoFile" accept="image/png,image/jpeg" aria-describedby="logoHelp"/>
+            <p class="small" id="logoHelp" data-i18n="logoHelp">PNG oder JPEG, bis 192 KiB und 4 Millionen Bildpunkte.</p>
+            <div class="row">
+              <button id="btnSaveLogo" class="ghost" type="button" data-i18n="saveLogo">Logo speichern (Standard)</button>
+              <button id="btnClearLogo" class="red" type="button" data-i18n="removeLogo">Logo entfernen</button>
+            </div>
+          </div>
+        </div>
+      </details>
+      <details class="form-details">
+        <summary data-i18n="draftData">Entwurfsdaten</summary>
+        <div class="actions">
+          <button id="dlJson" class="ghost" type="button" data-i18n="exportJson">Entwurf als JSON exportieren</button>
+          <button id="dlCsv" class="ghost" type="button" data-i18n="exportCsv">Positionen als CSV exportieren</button>
+        </div>
+        <div class="row file-imports">
+          <label><span data-i18n="importJson">Entwurf als JSON importieren</span> <input type="file" id="uploadJson" accept=".json,application/json"/></label>
+          <label><span data-i18n="importCsv">Positionen als CSV importieren</span> <input type="file" id="uploadCsv" accept=".csv,text/csv"/></label>
+        </div>
+        <p id="csvImportStatus" class="operation-status" role="status" aria-atomic="true"></p>
+      </details>
+    </section>
 
     <!-- History list -->
-    <section id="invoiceHistory" class="card card-wide" aria-labelledby="historyHeading">
-      <h2 id="historyHeading" class="card-heading" data-i18n="history">Historie (lokal)</h2>
+    <details id="invoiceHistory" class="card card-wide card-details">
+      <summary id="historyHeading"><span data-i18n="history">Historie (lokal)</span> <span id="historyCount" class="count-badge" hidden></span></summary>
       <div class="row management-actions history-toolbar">
         <div class="history-filter">
           <label for="historySearch" data-i18n="historySearch">Nr. oder Kunde suchen</label>
           <input id="historySearch" type="search" aria-controls="historyBox"/>
         </div>
-        <button id="btnExportHistory" class="ghost" data-i18n="historyExport">Historie als CSV exportieren</button>
-        <button id="btnClearHistory" class="red" data-i18n="clearHistory">Historie leeren</button>
+        <button id="btnExportHistory" class="ghost" type="button" data-i18n="historyExport">Historie als CSV exportieren</button>
+        <button id="btnClearHistory" class="red" type="button" data-i18n="clearHistory">Historie leeren</button>
       </div>
       <p id="historyStatus" class="operation-status" role="status" aria-atomic="true"></p>
       <div class="history" id="historyBox" tabindex="0" role="region" aria-labelledby="historyHeading">
         <table>
-          <thead><tr><th scope="col" data-i18n="historyNumber">Nr.</th><th scope="col" data-i18n="historyDate">Datum</th><th scope="col" data-i18n="historyCustomer">Kunde</th><th scope="col" data-i18n="gross">Brutto</th><th scope="col" data-i18n="historyCurrency">Währung</th><th scope="col" data-i18n="historyActions">Aktionen</th></tr></thead>
-          <tbody id="histBody"><tr><td colspan="6" class="small" data-i18n="emptyHistory">Noch nichts gespeichert.</td></tr></tbody>
+          <thead><tr><th scope="col" data-i18n="historyNumber">Nr.</th><th scope="col" data-i18n="historyDate">Datum</th><th scope="col" data-i18n="historyCustomer">Kunde</th><th scope="col" class="numeric" data-i18n="gross">Brutto</th><th scope="col" data-i18n="historyCurrency">Währung</th><th scope="col" data-i18n="historyActions">Aktionen</th></tr></thead>
+          <tbody id="histBody"><tr><td colspan="6" class="small empty-cell" data-i18n="emptyHistory">Noch nichts gespeichert. Entwürfe lassen sich mit „In Historie speichern“ lokal ablegen.</td></tr></tbody>
         </table>
       </div>
-    </section>
+    </details>
 
     <!-- Storage management -->
-    <div class="card card-wide">
-      <h2 class="card-heading" data-i18n="localBackup">Backup des lokalen Speichers</h2>
+    <details class="card card-wide card-details">
+      <summary data-i18n="localBackup">Backup des lokalen Speichers</summary>
       <p class="small" data-i18n="backupHelp">Die Sicherung enthält lokale Entwürfe, Kontakte, Firmenprofile, Vorlagen, Einstellungen und das gespeicherte Logo.</p>
       <div class="row management-actions">
-        <button id="btnBackup" class="ghost" data-i18n="exportBackup">Backup exportieren</button>
-        <label class="small"><span data-i18n="importBackup">Backup importieren</span> <input type="file" id="uploadBackup" accept="application/json"/></label>
-        <button id="btnWipeAll" class="red" data-i18n="wipeData">Alles lokal löschen</button>
+        <button id="btnBackup" class="ghost" type="button" data-i18n="exportBackup">Backup exportieren</button>
+        <label class="inline-file"><span data-i18n="importBackup">Backup importieren</span> <input type="file" id="uploadBackup" accept="application/json"/></label>
+        <button id="btnWipeAll" class="red" type="button" data-i18n="wipeData">Alles lokal löschen</button>
       </div>
-    </div>
+    </details>
   </main>
   <footer class="row page-links">
     <a href="./THIRD_PARTY_NOTICES.txt" data-i18n="licenses">Drittanbieterhinweise</a>
@@ -434,7 +531,7 @@
         <option value="30" data-i18n="bankTransfer">Überweisung (30)</option>
         <option value="10" data-i18n="cash">Barzahlung (10)</option>
       </select>
-      <label for="settingsPaymentTerms" data-i18n="paymentTerms">Zahlungsbedingungen</label>
+      <label for="settingsPaymentTerms" class="label-top" data-i18n="paymentTerms">Zahlungsbedingungen</label>
       <textarea id="settingsPaymentTerms" rows="2"></textarea>
       <label for="settingsBusinessProcess" data-i18n="businessProcess">Geschäftsprozess</label>
       <input id="settingsBusinessProcess" placeholder="Kennung laut Empfänger" data-i18n-placeholder="businessProcessExample"/>
@@ -448,13 +545,15 @@
   </form>
 </dialog>
 
-<!-- Template preview modal -->
-<div id="templatePreviewModal" class="modal" style="display:none;position:fixed;inset:0;background:rgba(2,6,23,0.6);align-items:center;justify-content:center;padding:24px;z-index:9999">
-  <div style="background:#fff;border-radius:10px;max-width:900px;width:100%;max-height:80vh;overflow:auto;padding:18px;position:relative">
-    <button class="modal-close" aria-label="Schließen" data-i18n-aria-label="closeDialog" style="position:absolute;right:12px;top:8px;border:0;background:transparent;font-size:20px;cursor:pointer">✖</button>
-    <div class="modal-body"></div>
+<!-- Template preview -->
+<dialog id="templatePreviewModal" class="modal" aria-labelledby="templatePreviewHeading">
+  <div class="modal-body"></div>
+  <div class="actions settings-actions">
+    <button type="button" class="ghost modal-close" data-i18n="closeDialog">Schließen</button>
   </div>
-</div>
+</dialog>
+
+<div id="toasts" class="toasts" aria-live="polite"></div>
 
 <datalist id="countryCodes"></datalist>
 <datalist id="addressSchemes"></datalist>

@@ -1,4 +1,5 @@
 import { tr } from "./i18n.js";
+import { notify } from "./notify.js";
 
 export const storageKeys = {
   defaults: "invgen_defaults",
@@ -37,11 +38,12 @@ export function writeStored(key, value) {
     localStorage.setItem(key, JSON.stringify(value));
     return true;
   } catch {
-    alert(
+    notify(
       tr(
         "Lokaler Speicher voll oder gesperrt.",
         "Local storage is full or unavailable.",
       ),
+      { error: true },
     );
     return false;
   }
@@ -51,7 +53,9 @@ export function removeStored(key) {
     localStorage.removeItem(key);
     return true;
   } catch {
-    alert(tr("Lokaler Speicher gesperrt.", "Local storage is unavailable."));
+    notify(tr("Lokaler Speicher gesperrt.", "Local storage is unavailable."), {
+      error: true,
+    });
     return false;
   }
 }

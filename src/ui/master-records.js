@@ -40,6 +40,18 @@ export function sameRecord(left, right) {
   return JSON.stringify(left) === JSON.stringify(right);
 }
 
+/**
+ * The quick pick sits above the form fields and only appears once there is
+ * something to pick. Searching is only offered for a longer list.
+ */
+export function toggleQuickPick(container, search, count, searchFrom = 6) {
+  if (container) container.hidden = count === 0;
+  const box = search?.closest("[data-quick-search]");
+  const showSearch = count >= searchFrom;
+  if (box) box.hidden = !showSearch;
+  if (!showSearch && search?.value) search.value = "";
+}
+
 export function masterRecordOptions({ select, search, records, onSelection }) {
   let visible = [];
   const selected = () =>

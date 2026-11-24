@@ -17,10 +17,20 @@ import { initMasterDataTransfer } from "./ui/master-data-transfer.js";
 import { initTemplatesUI } from "./ui/templates-ui.js";
 import { initLocale } from "./ui/i18n.js";
 import { initSettings } from "./ui/settings.js";
+import { initValidation } from "./ui/validation-ui.js";
+import { initCompleteness } from "./ui/completeness.js";
+import { initDateHelpers } from "./ui/date-helpers.js";
+import { initDraftState } from "./ui/draft-state.js";
+import { initIbanField } from "./ui/iban-field.js";
+import { initTheme } from "./ui/theme.js";
 
+initTheme();
 initLocale();
 initInvoiceExport();
 initDraftForm();
+initValidation();
+initIbanField();
+initDateHelpers();
 initSettings();
 initDraftFiles();
 initDraftDefaults();
@@ -30,6 +40,8 @@ initTemplatesUI();
 initCompanyUI();
 initContacts();
 initMasterDataTransfer();
+initCompleteness();
+initDraftState();
 
 // Keep the existing browser hooks for older integrations.
 Object.assign(window, {

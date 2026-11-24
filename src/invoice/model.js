@@ -145,7 +145,7 @@ function xrechnungPaymentTerms(terms) {
   return text;
 }
 
-function validIBAN(iban) {
+export function validIBAN(iban) {
   if (!/^[A-Z]{2}[0-9]{2}[A-Z0-9]{11,30}$/.test(iban)) return false;
   let remainder = 0;
   for (const char of iban.slice(4) + iban.slice(0, 4)) {

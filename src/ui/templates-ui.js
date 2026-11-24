@@ -13,6 +13,7 @@ import {
   readJsonFile,
 } from "./import-data.js";
 import { localeChangeEvent, tr } from "./i18n.js";
+import { notify } from "./notify.js";
 
 const field = (id) => document.getElementById(id);
 
@@ -44,7 +45,9 @@ function showPreview(template) {
   const body = modal?.querySelector(".modal-body");
   if (!body) return;
   const { snapshot } = normalizeTemplate(template);
-  const heading = document.createElement("h3");
+  const heading = document.createElement("h2");
+  heading.id = "templatePreviewHeading";
+  heading.className = "card-heading";
   heading.textContent = template.name;
   const parties = document.createElement("p");
   parties.textContent = [snapshot.seller?.name, snapshot.buyer?.name]
@@ -59,7 +62,7 @@ function showPreview(template) {
     list.append(item);
   }
   body.replaceChildren(heading, parties, list);
-  modal.style.display = "block";
+  if (!modal.open) modal.showModal();
 }
 
 export function initTemplatesUI() {
@@ -82,14 +85,16 @@ export function initTemplatesUI() {
       saveTemplate(name, collect());
       refreshTemplateSelect();
       select.value = name;
+      notify(tr("Vorlage gespeichert.", "Template saved."));
     } catch (error) {
-      alert(
+      notify(
         tr(
           "Vorlage konnte nicht gespeichert werden.",
           "Unable to save the template.",
         ) +
           "\n" +
           error.message,
+        { error: true },
       );
     }
   });
@@ -101,13 +106,14 @@ export function initTemplatesUI() {
         asCopy: true,
       });
     } catch (error) {
-      alert(
+      notify(
         tr(
           "Vorlage konnte nicht geladen werden.",
           "Unable to open the template.",
         ) +
           "\n" +
           error.message,
+        { error: true },
       );
     }
   });
@@ -117,13 +123,14 @@ export function initTemplatesUI() {
     try {
       showPreview(template);
     } catch (error) {
-      alert(
+      notify(
         tr(
           "Vorlage konnte nicht angezeigt werden.",
           "Unable to preview the template.",
         ) +
           "\n" +
           error.message,
+        { error: true },
       );
     }
   });
@@ -134,14 +141,16 @@ export function initTemplatesUI() {
     try {
       deleteTemplate(template.name);
       refreshTemplateSelect();
+      notify(tr("Vorlage gelöscht.", "Template deleted."));
     } catch (error) {
-      alert(
+      notify(
         tr(
           "Vorlage konnte nicht gelöscht werden.",
           "Unable to delete the template.",
         ) +
           "\n" +
           error.message,
+        { error: true },
       );
     }
   });
@@ -177,12 +186,14 @@ export function initTemplatesUI() {
         return;
       importTemplates(templates, { replace });
       refreshTemplateSelect();
+      notify(tr("Vorlagen importiert.", "Templates imported."));
     } catch (error) {
       if (upload.files?.[0] === file) {
-        alert(
+        notify(
           tr("Vorlagenimport fehlgeschlagen.", "Unable to import templates.") +
             "\n" +
             error.message,
+          { error: true },
         );
       }
     } finally {
@@ -192,9 +203,9 @@ export function initTemplatesUI() {
 
   const modal = field("templatePreviewModal");
   modal?.querySelector(".modal-close")?.addEventListener("click", () => {
-    modal.style.display = "none";
+    modal.close();
   });
   modal?.addEventListener("click", (event) => {
-    if (event.target === modal) modal.style.display = "none";
+    if (event.target === modal) modal.close();
   });
 }

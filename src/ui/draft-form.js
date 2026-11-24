@@ -23,8 +23,11 @@ import { createExampleDraft } from "./example-draft.js";
 import { normalizeDraft } from "./import-data.js";
 import { tr } from "./i18n.js";
 import { newDraftDefaults } from "./settings.js";
+import { clearValidation, revealRequiredDetails } from "./validation-ui.js";
 
+export { revealRequiredDetails };
 export const draftChangeEvent = "invoice-draft-updated";
+export const draftSavedEvent = "invoice-draft-saved";
 let cleanDraft = "";
 let cleanSampleFields = "";
 let lastRequirementState;
@@ -118,6 +121,7 @@ export function collect() {
 
 export function populate(draft) {
   draft = normalizeDraft(draft);
+  clearValidation();
 
   const { header = {}, seller, buyer, payment, meta } = draft;
   restoreSelection("profile", header?.profile, "EN16931");
@@ -175,9 +179,9 @@ export function validate(draft) {
 export function notifyDraftChange() {
   const isXRechnung = $("#profile").value === "XRECHNUNG";
   const requiresIban = ["30", "58"].includes($("#payType").value);
-  const state = isXRechnung + ":" + requiresIban;
-  if (lastRequirementState !== state) {
-    lastRequirementState = state;
+  const profileChanged = lastRequirementState?.isXRechnung !== isXRechnung;
+  if (profileChanged || lastRequirementState?.requiresIban !== requiresIban) {
+    lastRequirementState = { isXRechnung, requiresIban };
     const syntax = $("#syntax");
     if (syntax) syntax.disabled = !isXRechnung;
     for (const [field, required] of [
@@ -189,6 +193,9 @@ export function notifyDraftChange() {
       document
         .querySelector(`label[for="${field}"]`)
         ?.classList.toggle("conditionally-required", required);
+    }
+    if (profileChanged && isXRechnung) {
+      revealRequiredDetails("[data-xrechnung-fields]");
     }
   }
   document.dispatchEvent(new Event(draftChangeEvent));
@@ -215,6 +222,12 @@ export function markDraftSaved() {
   const snapshot = collect();
   cleanDraft = JSON.stringify(snapshot);
   cleanSampleFields = sampleFieldsSignature(snapshot);
+  document.dispatchEvent(new Event(draftSavedEvent));
+}
+
+/** True while the form differs from the last saved or opened state. */
+export function hasUnsavedChanges() {
+  return JSON.stringify(collect()) !== cleanDraft;
 }
 
 export function openDraft(draft, { asCopy = false } = {}) {
@@ -262,6 +275,12 @@ export function initDraftForm() {
       return;
     if (field.id === "currency") recalc();
     else notifyDraftChange();
+  });
+  // Drafts only live in this page until they are saved to the history.
+  window.addEventListener("beforeunload", (event) => {
+    if (!hasUnsavedChanges()) return;
+    event.preventDefault();
+    event.returnValue = "";
   });
   $("#btnSample").onclick = () => {
     const snapshot = collect();

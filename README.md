@@ -13,7 +13,11 @@ Die Oberfläche ist unter [127.0.0.1:8081](http://127.0.0.1:8081) erreichbar. �
 
 Der erste Build oder Test lädt die PDF-Schriften aus einer festgelegten Noto-Sans-Quelle und prüft ihre SHA-256-Prüfsummen. Mit gefülltem Schriftcache funktionieren auch Build und Tests offline. [PDF-Ressourcen](assets/README.md)
 
-Die Oberfläche lässt sich auf Deutsch oder Englisch bedienen. Unter **PDF-Gestaltung** lässt sich die Sprache des Rechnungsbilds separat wählen. Sie bestimmt Beschriftungen, Datums- und Zahlenanzeige im PDF. Das eingebettete XML behält sein standardisiertes Format.
+Die Oberfläche lässt sich auf Deutsch oder Englisch bedienen und folgt standardmäßig der hellen oder dunklen Systemdarstellung. Über **Anzeige** kannst du die Darstellung für diesen Browser fest einstellen. Unter **PDF-Gestaltung** lässt sich die Sprache des Rechnungsbilds separat wählen. Sie bestimmt Beschriftungen, Datums- und Zahlenanzeige im PDF. Das eingebettete XML behält sein standardisiertes Format.
+
+Die Grundansicht zeigt die wichtigsten Rechnungs-, Adress- und Zahlungsfelder. Referenzen, Kontaktdaten, Vorlagen und weitere Einstellungen lassen sich im jeweiligen Abschnitt aufklappen. Bei der Wahl von XRechnung öffnet der Editor Abschnitte mit fehlenden Pflichtangaben.
+
+Die Leiste am oberen Rand zeigt die Summe und die Zahl der offenen Pflichtangaben. Ein Klick darauf springt zum ersten offenen Feld. Gespeicherte Firmenprofile und Käuferkontakte erscheinen als Schnellauswahl über den Adressfeldern. Gelöschte Positionen lassen sich über „Rückgängig“ zurückholen. Solange ein Entwurf nicht in der Historie liegt, zeigt der Editor „Ungespeicherte Änderungen“ an und fragt beim Schließen der Seite nach.
 
 `npm run package` (oder `make package`) ersetzt den generierten Ordner `release/` erst nach einem erfolgreichen Build durch ein vollständiges Paket. Falls der Build fehlschlägt, bleibt das bisherige Paket erhalten. Der Ordner dient als Webroot für GitHub Pages, etwa im `gh-pages`-Branch. Frühere Layout-URLs leiten dort zum aktuellen Editor weiter. Für den Offline-Einsatz den ganzen Ordner zusammenhalten und `release/index.html` direkt öffnen. Das PDF-Modul wird beim ersten PDF-Export geladen. [GitHub Pages aus einem Branch veröffentlichen](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site#publishing-from-a-branch)
 
@@ -34,13 +38,13 @@ Entwürfe, Kontakte, Vorlagen und die Historie können lokal im Browser-Profil g
 
 - Unter **Standards konfigurieren** Rechnungsprofil, Syntax, Währung, Firmenprofil und Zahlungsvorgaben speichern. Der Editor verwendet sie beim Start und beim Zurücksetzen. Beim Öffnen eines gespeicherten Entwurfs gelten dessen eigene Angaben.
 - In der **Historie** nach Rechnungsnummer oder Kunde suchen und gespeicherte Entwürfe laden, als JSON sichern oder kopieren. Kopien erhalten das heutige Rechnungsdatum und leere Felder für Rechnungsnummer, Leistungsdatum, Fälligkeit, Bestellreferenz und Verwendungszweck. Der CSV-Export enthält die gesamte lokale Liste mit Währungen.
-- Auch beim Laden einer **Rechnungsvorlage** beginnt ein neuer Entwurf mit diesen leeren Feldern. Der Vorlagenimport ergänzt die Liste. Gleichnamige Vorlagen oder die gesamte Liste werden nach Bestätigung ersetzt.
+- Rechnungsvorlagen liegen im Abschnitt **Rechnungsvorlagen** der Rechnungsdaten. Auch beim Laden einer **Rechnungsvorlage** beginnt ein neuer Entwurf mit diesen leeren Feldern. Der Vorlagenimport ergänzt die Liste. Gleichnamige Vorlagen oder die gesamte Liste werden nach Bestätigung ersetzt.
 - Unter **Entwurfsdaten** einen vollständigen Entwurf als JSON austauschen oder nur Positionen als CSV übernehmen. Der CSV-Import liest UTF-8-Dateien mit Komma oder Semikolon und deutschen oder englischen Spaltennamen. Eine exportierte Positionsdatei dient als Vorlage. Der Editor berechnet Summen aus den importierten Positionsdaten und fragt vor dem Ersetzen nach.
 - Regelmäßig ein **Backup des lokalen Speichers** herunterladen. Es enthält auch die gespeicherten Vorgaben für neue Entwürfe. Einen aktuell bearbeiteten Entwurf zuerst in die Historie speichern oder separat als JSON herunterladen.
 
 ## Stammdaten
 
-Firmenprofile und Käuferkontakte lassen sich oberhalb der jeweiligen Rechnungsfelder suchen und übernehmen. Zum Erfassen zuerst die Felder der Rechnung ausfüllen, dann unter **Firmenprofil speichern** oder **Käuferkontakt speichern** zwischen **Neu speichern** und **Auswahl aktualisieren** wählen. Gespeicherte Rechnungen behalten die Daten ihres Entwurfs.
+Unter **Firmenprofile und Standardwerte** beziehungsweise **Käuferkontakte verwalten** lassen sich Stammdaten suchen und übernehmen. Zum Erfassen zuerst die Felder der Rechnung ausfüllen, dann unter **Firmenprofil speichern** oder **Käuferkontakt speichern** zwischen **Neu speichern** und **Auswahl aktualisieren** wählen. Gespeicherte Rechnungen behalten die Daten ihres Entwurfs.
 
 - **Firmenprofile** speichern Verkäufer- und Zahlungsdaten. Eine eigene Profilbezeichnung hilft, mehrere Profile unter demselben Firmennamen zu unterscheiden. Beim Übernehmen werden auch die Zahlungsdaten aus dem Profil gesetzt. Ist eine automatische Standardvorlage gewählt, entsteht daraus ein neuer Entwurf mit den Daten des gewählten Verkäufers.
 - **Käuferkontakte** speichern auch Kontaktangaben und bei Bedarf eine feste Käuferreferenz wie eine Leitweg-ID. Beim Übernehmen wird die Käuferreferenz aus dem Kontakt eingesetzt oder bei leerer Vorgabe geleert. Die Bestellreferenz wird weiterhin für die einzelne Rechnung erfasst.

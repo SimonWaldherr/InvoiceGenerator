@@ -16,7 +16,12 @@ import {
 } from "./invoice-fields.js";
 import { copyDraftForNewInvoice, normalizeTemplate } from "./import-data.js";
 import { localeChangeEvent, tr } from "./i18n.js";
-import { masterRecordOptions, recordLabel } from "./master-records.js";
+import {
+  masterRecordOptions,
+  recordLabel,
+  toggleQuickPick,
+} from "./master-records.js";
+import { notify } from "./notify.js";
 import { storageKeys } from "./storage.js";
 import { getTemplates } from "./templates-storage.js";
 
@@ -32,10 +37,15 @@ export function initCompanyUI() {
     status.textContent = text();
   }
 
+  const quickPick = $("#companyQuickPick");
   const picker = masterRecordOptions({
     select: $("#companySelect"),
     search: $("#companySearch"),
-    records: getCompanies,
+    records() {
+      const list = getCompanies();
+      toggleQuickPick(quickPick, $("#companySearch"), list.length);
+      return list;
+    },
     onSelection(profile) {
       labelField.value = profile ? recordLabel(profile) : "";
       defaultTemplate.value = profile?.defaultTemplate || "";
@@ -131,12 +141,13 @@ export function initCompanyUI() {
         writeBankDetails(payment);
         notifyDraftChange();
       }
-      show(() =>
+      const applied = () =>
         tr(
           `Firmenprofil „${recordLabel(profile)}“ übernommen.`,
           `Applied company profile “${recordLabel(profile)}”.`,
-        ),
-      );
+        );
+      show(applied);
+      notify(applied());
     } catch (error) {
       show(
         () =>

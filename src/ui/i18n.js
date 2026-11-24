@@ -15,6 +15,11 @@ const numberFormats = {
   }),
 };
 
+const rateFormats = {
+  de: new Intl.NumberFormat("de-DE", { maximumFractionDigits: 2 }),
+  en: new Intl.NumberFormat("en-GB", { maximumFractionDigits: 2 }),
+};
+
 export const localeChangeEvent = "invoice-language-change";
 
 export function language() {
@@ -27,6 +32,10 @@ export function tr(german, translated) {
 
 export function formatNumber(value) {
   return value == null ? "–" : numberFormats[selectedLanguage].format(value);
+}
+
+export function formatRate(value) {
+  return rateFormats[selectedLanguage].format(value);
 }
 
 function remember(element, name, value) {

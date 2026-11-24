@@ -6,6 +6,7 @@ import { readStored, replaceStored, storageKeys } from "./storage.js";
 import { downloadJSON } from "./download.js";
 import { backupEntries, readJsonFile } from "./import-data.js";
 import { tr } from "./i18n.js";
+import { notify } from "./notify.js";
 
 const backupArrayKeys = [
   storageKeys.contacts,
@@ -53,16 +54,17 @@ export function initBackups() {
         return;
       replaceStored(entries);
       refreshDraftStorage();
-      alert(tr("Sicherung importiert.", "Backup imported."));
+      notify(tr("Sicherung importiert.", "Backup imported."));
     } catch (error) {
       if (input.files?.[0] === file) {
-        alert(
+        notify(
           tr(
             "Import der Sicherung fehlgeschlagen.",
             "Unable to import the backup.",
           ) +
             "\n" +
             error.message,
+          { error: true },
         );
       }
     } finally {
@@ -84,15 +86,16 @@ export function initBackups() {
       replaceStored(Object.values(storageKeys).map((key) => [key, undefined]));
       refreshDraftStorage();
       resetDraft();
-      alert(tr("Alle lokalen Daten gelöscht.", "All local data deleted."));
+      notify(tr("Alle lokalen Daten gelöscht.", "All local data deleted."));
     } catch (error) {
-      alert(
+      notify(
         tr(
           "Lokale Daten konnten nicht vollständig gelöscht werden.",
           "Unable to delete all local data.",
         ) +
           "\n" +
           error.message,
+        { error: true },
       );
     }
   };

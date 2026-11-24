@@ -14,6 +14,7 @@ import {
 } from "./storage.js";
 import { isDefaults } from "./import-data.js";
 import { tr } from "./i18n.js";
+import { notify } from "./notify.js";
 
 function getLastNr() {
   return readStored(storageKeys.lastNr, "");
@@ -32,20 +33,21 @@ export function initDraftDefaults() {
       unitDefault: draft.meta.unitDefault,
     });
     if (saved)
-      alert(tr("Standard gespeichert (lokal).", "Defaults saved locally."));
+      notify(tr("Standard gespeichert (lokal).", "Defaults saved locally."));
   };
   $("#btnLoadDefaults").onclick = () => {
     const defaults = readStored(storageKeys.defaults, null);
     if (!defaults) {
-      alert(tr("Kein Standard gespeichert.", "No saved defaults."));
+      notify(tr("Kein Standard gespeichert.", "No saved defaults."));
       return;
     }
     if (!isDefaults(defaults)) {
-      alert(
+      notify(
         tr(
           "Die gespeicherten Standardwerte sind ungültig.",
           "The saved defaults are invalid.",
         ),
+        { error: true },
       );
       return;
     }
@@ -58,17 +60,18 @@ export function initDraftDefaults() {
   };
   $("#btnClearDefaults").onclick = () => {
     if (removeStored(storageKeys.defaults))
-      alert(tr("Standard gelöscht.", "Defaults deleted."));
+      notify(tr("Standard gelöscht.", "Defaults deleted."));
   };
 
   $("#btnRememberNr").onclick = () => {
     const nr = $("#invNumber").value.trim();
     if (!nr) {
-      alert(tr("Keine Nummer eingetragen.", "Enter an invoice number."));
+      notify(tr("Keine Nummer eingetragen.", "Enter an invoice number."));
+      $("#invNumber").focus();
       return;
     }
     if (!setLastNr(nr)) return;
-    alert(tr("Rechnungsnummer gemerkt.", "Invoice number saved."));
+    notify(tr("Rechnungsnummer gemerkt.", "Invoice number saved."));
   };
   $("#btnNextNr").onclick = () => {
     const cur = $("#invNumber").value.trim() || getLastNr();

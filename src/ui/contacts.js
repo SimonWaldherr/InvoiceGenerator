@@ -3,7 +3,12 @@ import { notifyDraftChange } from "./draft-form.js";
 import { readParty, writeField, writeParty } from "./invoice-fields.js";
 import { isContact } from "./import-data.js";
 import { localeChangeEvent, tr } from "./i18n.js";
-import { masterRecordOptions, sameRecord } from "./master-records.js";
+import {
+  masterRecordOptions,
+  sameRecord,
+  toggleQuickPick,
+} from "./master-records.js";
+import { notify } from "./notify.js";
 import { readStoredList, storageKeys, writeStored } from "./storage.js";
 
 function getContacts() {
@@ -19,10 +24,15 @@ export function initContacts() {
     status.textContent = text();
   }
 
+  const quickPick = $("#contactQuickPick");
   const picker = masterRecordOptions({
     select: $("#contactSelect"),
     search: $("#contactSearch"),
-    records: getContacts,
+    records() {
+      const list = getContacts();
+      toggleQuickPick(quickPick, $("#contactSearch"), list.length);
+      return list;
+    },
     onSelection(contact) {
       reference.value = contact?.buyerRef ?? "";
       for (const id of [
@@ -120,12 +130,13 @@ export function initContacts() {
     writeParty("buyer", contact);
     writeField("buyerRef", contact.buyerRef);
     notifyDraftChange();
-    show(() =>
+    const applied = () =>
       tr(
         `Käuferkontakt „${contact.name}“ übernommen.`,
         `Applied buyer contact “${contact.name}”.`,
-      ),
-    );
+      );
+    show(applied);
+    notify(applied());
   });
   $("#btnDelContact").addEventListener("click", () => {
     const contact = picker.selected();

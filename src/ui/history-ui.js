@@ -9,6 +9,8 @@ import {
 import { downloadArtifact, downloadJSON } from "./download.js";
 import { isHistoryEntry } from "./import-data.js";
 import { formatNumber, localeChangeEvent, tr } from "./i18n.js";
+import { notify } from "./notify.js";
+import { showProblems } from "./validation-ui.js";
 import {
   draftFromHistory,
   filterHistory,
@@ -42,11 +44,12 @@ function pushHistory(entry) {
     index = list.findIndex(matchesNumber);
     if (index < 0 || JSON.stringify(list[index]) !== previous) {
       renderHistory();
-      alert(
+      notify(
         tr(
           "Der gespeicherte Entwurf wurde inzwischen geändert. Bitte erneut speichern.",
           "The saved draft has changed. Save again to retry.",
         ),
+        { error: true },
       );
       return false;
     }
@@ -60,13 +63,14 @@ function pushHistory(entry) {
       [storageKeys.lastNr, entry.number],
     ]);
   } catch (error) {
-    alert(
+    notify(
       tr(
         "Entwurf konnte nicht gespeichert werden.",
         "Unable to save the draft.",
       ) +
         "\n" +
         error.message,
+      { error: true },
     );
     return false;
   }
@@ -92,10 +96,11 @@ function openHistoryEntry(entry, asCopy = false) {
     );
     $(asCopy ? "#invNumber" : "#invoiceDetails")?.focus();
   } catch (error) {
-    alert(
+    notify(
       tr("Entwurf konnte nicht geladen werden.", "Unable to open the draft.") +
         "\n" +
         error.message,
+      { error: true },
     );
   }
 }
@@ -146,24 +151,45 @@ function renderHistory(message) {
         `${visible.length} of ${list.length} ${list.length === 1 ? "draft" : "drafts"}`,
       ),
   );
+  const count = $("#historyCount");
+  if (count) {
+    count.textContent = String(list.length);
+    count.hidden = list.length === 0;
+  }
   body.replaceChildren();
   if (!visible.length) {
     const cell = body.insertRow().insertCell();
     cell.colSpan = 6;
-    cell.className = "small";
+    cell.className = "small empty-cell";
     cell.textContent = list.length
       ? tr("Keine passenden Entwürfe.", "No matching drafts.")
-      : tr("Noch nichts gespeichert.", "No saved drafts.");
+      : tr(
+          "Noch nichts gespeichert. Entwürfe lassen sich mit „In Historie speichern“ lokal ablegen.",
+          "Nothing saved yet. Use “Save to history” to keep drafts on this device.",
+        );
     return;
   }
+  // The headings label each cell when the table turns into a card list.
+  const headings = Array.from(
+    document.querySelectorAll("#invoiceHistory thead th"),
+    (heading) => heading.textContent,
+  );
   visible.forEach((item) => {
     const { number, date, buyer, gross, currency } = historySummary(item);
     const row = body.insertRow();
-    for (const value of [number, date, buyer, formatNumber(gross), currency]) {
-      row.insertCell().textContent = value ?? "";
-    }
-    const actions = row.insertCell();
-    actions.className = "row";
+    [number, date, buyer, formatNumber(gross), currency].forEach(
+      (value, index) => {
+        const cell = row.insertCell();
+        cell.textContent = value ?? "";
+        cell.dataset.label = headings[index] ?? "";
+        if (index === 3) cell.className = "numeric";
+      },
+    );
+    const cell = row.insertCell();
+    cell.className = "history-cell-actions";
+    const actions = document.createElement("div");
+    actions.className = "history-actions";
+    cell.append(actions);
     const addAction = (label, className, click) => {
       const button = document.createElement("button");
       button.textContent = label;
@@ -187,6 +213,11 @@ function renderHistory(message) {
 export { renderHistory as refreshHistory };
 
 export function initHistory() {
+  const history = $("#invoiceHistory");
+  if (window.location.hash === "#invoiceHistory") history.open = true;
+  $('a[href="#invoiceHistory"]')?.addEventListener("click", () => {
+    history.open = true;
+  });
   renderHistory();
   document.addEventListener(localeChangeEvent, () => renderHistory());
   window.addEventListener("storage", (event) => {
@@ -209,10 +240,11 @@ export function initHistory() {
     const data = collect();
     const errs = validate(data);
     if (errs.length) {
-      alert(
-        tr("Bitte diese Felder prüfen.", "Check these fields.") +
-          "\n- " +
-          errs.join("\n- "),
+      showProblems();
+      notify(
+        tr("Bitte diese Angaben prüfen: ", "Check these fields: ") +
+          errs.join(", "),
+        { error: true },
       );
       return;
     }
@@ -229,7 +261,7 @@ export function initHistory() {
       return;
     markDraftSaved();
     setHistoryStatus(tr("In Historie gespeichert.", "Draft saved to history."));
-    alert(tr("In Historie gespeichert.", "Draft saved to history."));
+    notify(tr("In Historie gespeichert.", "Draft saved to history."));
   };
   $("#btnClearHistory").onclick = () => {
     if (!confirm(tr("Gesamte Historie löschen?", "Delete all saved drafts?")))

@@ -2,6 +2,7 @@ import { $ } from "../utils.js";
 import { maxLogoBytes, supportedLogo } from "../invoice/draft.js";
 import { readStored, storageKeys, writeStored } from "./storage.js";
 import { localeChangeEvent, tr } from "./i18n.js";
+import { notify } from "./notify.js";
 
 let draftLogo = null;
 let logoRevision = 0;
@@ -86,7 +87,7 @@ export function initLogo(onChange) {
         onChange();
       }
     } catch (error) {
-      if (isCurrentFile()) alert(error.message);
+      if (isCurrentFile()) notify(error.message, { error: true });
     } finally {
       if (input.files?.[0] === file) input.value = "";
     }
@@ -94,16 +95,17 @@ export function initLogo(onChange) {
   $("#btnSaveLogo").onclick = () => {
     const cur = getLogo();
     if (!cur) {
-      alert(
+      notify(
         tr(
           "Bitte zuerst eine Bilddatei wählen.",
           "Choose an image file first.",
         ),
+        { error: true },
       );
       return;
     }
     if (writeStored(storageKeys.logo, cur))
-      alert(
+      notify(
         tr(
           "Logo als Standard gespeichert (lokal).",
           "Saved as the default logo on this device.",
@@ -116,11 +118,12 @@ export function initLogo(onChange) {
       setLogo(null);
       onChange();
     } catch {
-      alert(
+      notify(
         tr(
           "Das gespeicherte Logo konnte nicht entfernt werden.",
           "Could not remove the saved logo.",
         ),
+        { error: true },
       );
     }
   };
