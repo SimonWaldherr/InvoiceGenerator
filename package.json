@@ -1,0 +1,35 @@
+{
+  "name": "invoicegenerator",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Statischer E-Rechnungsgenerator für XRechnung und ZUGFeRD.",
+  "scripts": {
+    "prepare:fonts": "node tools/prepare-fonts.mjs",
+    "prebundle": "node tools/prepare-fonts.mjs",
+    "bundle": "esbuild script=src/index.js pdf-export=src/invoice/pdf/browser.js --bundle --target=es2020 --loader:.deflate=binary --loader:.icc=binary",
+    "build": "npm run bundle -- --outdir=dist --minify",
+    "dev": "npm run bundle -- --outdir=dist --sourcemap --watch=forever",
+    "package": "node tools/package.mjs",
+    "start": "npm run package && esbuild --servedir=release --serve=127.0.0.1:8081 --watch=forever",
+    "pretest": "node tools/prepare-fonts.mjs",
+    "test": "node --test",
+    "pretest:formats": "node tools/prepare-fonts.mjs",
+    "test:formats": "node tools/check-formats.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SimonWaldherr/InvoiceGenerator.git"
+  },
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/SimonWaldherr/InvoiceGenerator/issues"
+  },
+  "homepage": "https://github.com/SimonWaldherr/InvoiceGenerator#readme",
+  "devDependencies": {
+    "esbuild": "0.28.2"
+  },
+  "dependencies": {
+    "fontkit": "2.0.4",
+    "pdf-lib": "1.17.1"
+  }
+}
