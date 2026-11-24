@@ -1,7 +1,8 @@
 import { spawnSync } from "node:child_process";
 import { readFile, mkdtemp, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { basename, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { PDFDocument, PDFName } from "pdf-lib";
 import { createLocalInvoiceArtifact } from "../src/invoice/export.js";
 import { buildLocalPDF } from "../src/invoice/pdf/render.js";
@@ -274,6 +275,68 @@ function pdfa3bResult(report) {
   );
 }
 
+async function checkFerd(directory, java, KOSIT_JAR, embeddedPath, variants) {
+  const { FERD_XSD, FERD_XSLT } = process.env;
+  if (!FERD_XSD && !FERD_XSLT) return;
+  if (!FERD_XSD || !FERD_XSLT) {
+    throw new Error(
+      "Für die FeRD-Prüfung FERD_XSD und FERD_XSLT zusammen angeben.",
+    );
+  }
+
+  const files = [embeddedPath];
+  for (const [name, , invoice] of variants) {
+    if (!["reverse-charge-cii", "cash-cii", "registration-cii"].includes(name))
+      continue;
+    const draft = {
+      ...invoice,
+      header: { ...invoice.header, profile: "EN16931" },
+    };
+    const path = join(directory, `factur-x-${name}.xml`);
+    const artifact = await createLocalInvoiceArtifact(draft, "xml");
+    await writeFile(path, await artifact.text());
+    files.push(path);
+  }
+
+  const javaTmp = `-Djava.io.tmpdir=${directory}`;
+  const validateXml = fileURLToPath(
+    new URL("./ValidateXml.java", import.meta.url),
+  );
+  await runTool(directory, "ferd-xsd.log", java, [
+    javaTmp,
+    validateXml,
+    resolve(FERD_XSD),
+    ...files,
+  ]);
+
+  const transform = [
+    javaTmp,
+    "-cp",
+    KOSIT_JAR,
+    "net.sf.saxon.Transform",
+    `-xsl:${resolve(FERD_XSLT)}`,
+  ];
+  for (const path of files) {
+    const name = basename(path, ".xml");
+    const reportPath = join(directory, `${name}-ferd.svrl`);
+    await runTool(directory, `${name}-ferd.log`, java, [
+      ...transform,
+      `-s:${path}`,
+      `-o:${reportPath}`,
+    ]);
+    const report = await readFile(reportPath, "utf8");
+    if (
+      !/<svrl:fired-rule\b/.test(report) ||
+      /<svrl:failed-assert\b/.test(report)
+    ) {
+      throw new Error(
+        `FeRD-Prüfung fehlgeschlagen. Prüfbericht: ${reportPath}`,
+      );
+    }
+    console.log(`FeRD: ${name} besteht XSD und Schematron (EN 16931)`);
+  }
+}
+
 async function main() {
   const { KOSIT_JAR, KOSIT_CONFIG, MUSTANG_JAR } = await validatorPaths();
   const directory = await mkdtemp(join(tmpdir(), "invoicegenerator-formats."));
@@ -367,6 +430,7 @@ async function main() {
     );
   }
   console.log("Mustang: ZUGFeRD EN 16931 und identischer XML-Anhang bestätigt");
+  await checkFerd(directory, java, KOSIT_JAR, embeddedPath, variants);
 
   const veraArgs = ["--flavour", "3b", "--format", "json"];
   const veraReport = await runTool(directory, "verapdf.json", veraPDF, [

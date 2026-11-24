@@ -78,6 +78,8 @@ npm run test:formats
 
 `KOSIT_CONFIG` bezeichnet den Ordner mit `scenarios.xml` und den Regeldateien. `java` und `verapdf` müssen verfügbar sein. Abweichende Programme lassen sich über `JAVA_BIN` und `VERAPDF_BIN` angeben. Getestet mit [KoSIT 1.6.3](https://github.com/itplr-kosit/validator/releases/tag/v1.6.3), der [XRechnung-Konfiguration vom 31.08.2026](https://github.com/itplr-kosit/validator-configuration-xrechnung/releases/tag/v2026-08-31), [Mustang 2.26.0](https://www.mustangproject.org/commandline/) und [veraPDF 1.30.0](https://verapdf.org/software/).
 
+Gib für die zusätzliche Prüfung nach **ZUGFeRD 2.5.2 / Factur-X 1.09.2** beim selben Aufruf `FERD_XSD` und `FERD_XSLT` an. Beide Variablen verweisen auf die EN-16931-Dateien `Factur-X_EN16931.xsd` und `FACTUR-X_EN16931.xslt` aus dem entpackten Release. Die mitgelieferten Schema- und Codelistendateien bleiben an ihren relativen Pfaden. Der Test nutzt ein JDK und den bereits im KoSIT-JAR enthaltenen Saxon-Prozessor. Er prüft den aus dem PDF extrahierten XML-Anhang sowie XML-Beispiele für Barzahlung, Reverse Charge mit Steuerbefreiung und Verkäuferregistrierung. [FeRD-Release 2.5.2](https://www.ferd-net.de/publikationen-produkte/publikationen/detailseite/zugferd-252-deutsch) · [Artefakte des Mitherausgebers FNFE-MPE, Release v1.4.0.03](https://github.com/fnfempe/France_RFE/releases/tag/v1.4.0.03)
+
 ## Lizenz
 
 Für InvoiceGenerator wurde noch keine Projektlizenz festgelegt. Für eine Nutzung oder Weitergabe bitte die Rechte direkt mit dem Projektinhaber klären. Laufzeitbibliotheken und Schriften haben eigene [Drittanbieterhinweise](THIRD_PARTY_NOTICES.txt).
